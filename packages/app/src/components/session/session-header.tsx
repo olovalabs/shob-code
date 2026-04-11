@@ -262,12 +262,12 @@ export function SessionHeader() {
       .catch((err: unknown) => showRequestError(language, err))
   }
 
-  const centerMount = createMemo(() => document.getElementById("opencode-titlebar-center"))
+  const leftMount = createMemo(() => document.getElementById("opencode-titlebar-left"))
   const rightMount = createMemo(() => document.getElementById("opencode-titlebar-right"))
 
   return (
     <>
-      <Show when={centerMount()}>
+      <Show when={leftMount()}>
         {(mount) => (
           <Portal mount={mount()}>
             <Button

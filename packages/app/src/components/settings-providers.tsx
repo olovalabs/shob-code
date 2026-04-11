@@ -4,14 +4,13 @@ import { ProviderIcon } from "@opencode-ai/ui/provider-icon"
 import { Tag } from "@opencode-ai/ui/tag"
 import { showToast } from "@opencode-ai/ui/toast"
 import { popularProviders, useProviders } from "@/hooks/use-providers"
-import { createMemo, type Component, For, Show } from "solid-js"
+import { createMemo, type Component, For, Show, type JSX } from "solid-js"
 import { useLanguage } from "@/context/language"
 import { useGlobalSDK } from "@/context/global-sdk"
 import { useGlobalSync } from "@/context/global-sync"
 import { DialogConnectProvider } from "./dialog-connect-provider"
 import { DialogSelectProvider } from "./dialog-select-provider"
 import { DialogCustomProvider } from "./dialog-custom-provider"
-import { SettingsList } from "./settings-list"
 
 type ProviderSource = "env" | "api" | "config" | "custom"
 type ProviderItem = ReturnType<ReturnType<typeof useProviders>["connected"]>[number]
@@ -27,6 +26,67 @@ const PROVIDER_NOTES = [
   { match: (id: string) => id === "vercel", key: "dialog.provider.vercel.note" },
 ] as const
 
+const Section: Component<{ title: string; children: JSX.Element }> = (props) => (
+  <div class="flex flex-col gap-3">
+    <h2 class="text-13-semibold text-text-strong px-1">{props.title}</h2>
+    <div class="rounded-xl border border-border-weak-base bg-surface-panel p-5">{props.children}</div>
+  </div>
+)
+
+const ConnectedRow: Component<{
+  item: ProviderItem
+  type: string
+  canDisconnect: boolean
+  onDisconnect: () => void
+  disconnectHint: string
+}> = (props) => (
+  <div class="group flex items-center justify-between gap-4 py-3 border-b border-border-weak-base last:border-0">
+    <div class="flex items-center gap-3 min-w-0">
+      <ProviderIcon id={props.item.id} class="size-5 shrink-0 icon-strong-base" />
+      <span class="text-13-medium text-text-strong truncate">{props.item.name}</span>
+      <Tag>{props.type}</Tag>
+    </div>
+    <Show
+      when={props.canDisconnect}
+      fallback={
+        <span class="text-13-regular text-text-base opacity-0 group-hover:opacity-100 transition-opacity duration-200 pr-3 cursor-default">
+          {props.disconnectHint}
+        </span>
+      }
+    >
+      <Button size="small" variant="ghost" onClick={props.onDisconnect}>
+        {props.item.name}
+      </Button>
+    </Show>
+  </div>
+)
+
+const PopularRow: Component<{
+  item: { id: string; name: string }
+  note?: string
+  showRecommended?: boolean
+  onConnect: () => void
+  connectLabel: string
+}> = (props) => (
+  <div class="flex items-center justify-between gap-4 py-3 border-b border-border-weak-base last:border-0">
+    <div class="flex flex-col min-w-0">
+      <div class="flex items-center gap-x-3">
+        <ProviderIcon id={props.item.id} class="size-5 shrink-0 icon-strong-base" />
+        <span class="text-13-medium text-text-strong">{props.item.name}</span>
+        <Show when={props.showRecommended}>
+          <Tag>{props.connectLabel}</Tag>
+        </Show>
+      </div>
+      <Show when={props.note}>
+        <span class="text-12-regular text-text-weak pl-8">{props.note}</span>
+      </Show>
+    </div>
+    <Button size="small" variant="secondary" icon="plus-small" onClick={props.onConnect}>
+      {props.connectLabel}
+    </Button>
+  </div>
+)
+
 export const SettingsProviders: Component = () => {
   const dialog = useDialog()
   const language = useLanguage()
@@ -34,11 +94,11 @@ export const SettingsProviders: Component = () => {
   const globalSync = useGlobalSync()
   const providers = useProviders()
 
-  const connected = createMemo(() => {
-    return providers
+  const connected = createMemo(() =>
+    providers
       .connected()
-      .filter((p) => p.id !== "opencode" || Object.values(p.models).find((m) => m.cost?.input))
-  })
+      .filter((p) => p.id !== "opencode" || Object.values(p.models).find((m) => m.cost?.input)),
+  )
 
   const popular = createMemo(() => {
     const connectedIDs = new Set(connected().map((p) => p.id))
@@ -127,95 +187,58 @@ export const SettingsProviders: Component = () => {
   }
 
   return (
-    <div class="flex flex-col h-full overflow-y-auto no-scrollbar px-4 pb-10 sm:px-10 sm:pb-10">
-      <div class="sticky top-0 z-10 bg-[linear-gradient(to_bottom,var(--surface-stronger-non-alpha)_calc(100%_-_24px),transparent)]">
-        <div class="flex flex-col gap-1 pt-6 pb-8 max-w-[720px]">
-          <h2 class="text-16-medium text-text-strong">{language.t("settings.providers.title")}</h2>
-        </div>
-      </div>
-
-      <div class="flex flex-col gap-8 max-w-[720px]">
-        <div class="flex flex-col gap-1" data-component="connected-providers-section">
-          <h3 class="text-14-medium text-text-strong pb-2">{language.t("settings.providers.section.connected")}</h3>
-          <SettingsList>
-            <Show
-              when={connected().length > 0}
-              fallback={
-                <div class="py-4 text-14-regular text-text-weak">
-                  {language.t("settings.providers.connected.empty")}
-                </div>
-              }
-            >
+    <div class="flex flex-col h-full overflow-y-auto no-scrollbar px-6 py-6">
+      <div class="flex flex-col gap-5 max-w-2xl">
+        {/* Connected */}
+        <Section title={language.t("settings.providers.section.connected")}>
+          <Show
+            when={connected().length > 0}
+            fallback={
+              <div class="py-4 text-14-regular text-text-weak text-center">
+                {language.t("settings.providers.connected.empty")}
+              </div>
+            }
+          >
+            <div class="flex flex-col">
               <For each={connected()}>
                 {(item) => (
-                  <div class="group flex flex-wrap items-center justify-between gap-4 min-h-16 py-3 border-b border-border-weak-base last:border-none">
-                    <div class="flex items-center gap-3 min-w-0">
-                      <ProviderIcon id={item.id} class="size-5 shrink-0 icon-strong-base" />
-                      <span class="text-14-medium text-text-strong truncate">{item.name}</span>
-                      <Tag>{type(item)}</Tag>
-                    </div>
-                    <Show
-                      when={canDisconnect(item)}
-                      fallback={
-                        <span class="text-14-regular text-text-base opacity-0 group-hover:opacity-100 transition-opacity duration-200 pr-3 cursor-default">
-                          {language.t("settings.providers.connected.environmentDescription")}
-                        </span>
-                      }
-                    >
-                      <Button size="large" variant="ghost" onClick={() => void disconnect(item.id, item.name)}>
-                        {language.t("common.disconnect")}
-                      </Button>
-                    </Show>
-                  </div>
+                  <ConnectedRow
+                    item={item}
+                    type={type(item)}
+                    canDisconnect={canDisconnect(item)}
+                    onDisconnect={() => void disconnect(item.id, item.name)}
+                    disconnectHint={language.t("settings.providers.connected.environmentDescription")}
+                  />
                 )}
               </For>
-            </Show>
-          </SettingsList>
-        </div>
+            </div>
+          </Show>
+        </Section>
 
-        <div class="flex flex-col gap-1">
-          <h3 class="text-14-medium text-text-strong pb-2">{language.t("settings.providers.section.popular")}</h3>
-          <SettingsList>
+        {/* Popular */}
+        <Section title={language.t("settings.providers.section.popular")}>
+          <div class="flex flex-col">
             <For each={popular()}>
               {(item) => (
-                <div class="flex flex-wrap items-center justify-between gap-4 min-h-16 py-3 border-b border-border-weak-base last:border-none">
-                  <div class="flex flex-col min-w-0">
-                    <div class="flex items-center gap-x-3">
-                      <ProviderIcon id={item.id} class="size-5 shrink-0 icon-strong-base" />
-                      <span class="text-14-medium text-text-strong">{item.name}</span>
-                      <Show when={item.id === "opencode"}>
-                        <Tag>{language.t("dialog.provider.tag.recommended")}</Tag>
-                      </Show>
-                      <Show when={item.id === "opencode-go"}>
-                        <Tag>{language.t("dialog.provider.tag.recommended")}</Tag>
-                      </Show>
-                    </div>
-                    <Show when={note(item.id)}>
-                      {(key) => <span class="text-12-regular text-text-weak pl-8">{language.t(key())}</span>}
-                    </Show>
-                  </div>
-                  <Button
-                    size="large"
-                    variant="secondary"
-                    icon="plus-small"
-                    onClick={() => {
-                      dialog.show(() => <DialogConnectProvider provider={item.id} />)
-                    }}
-                  >
-                    {language.t("common.connect")}
-                  </Button>
-                </div>
+                <PopularRow
+                  item={item}
+                  note={note(item.id) ? language.t(note(item.id)!) : undefined}
+                  showRecommended={item.id === "opencode" || item.id === "opencode-go"}
+                  onConnect={() => dialog.show(() => <DialogConnectProvider provider={item.id} />)}
+                  connectLabel={language.t("common.connect")}
+                />
               )}
             </For>
 
+            {/* Custom Provider */}
             <div
-              class="flex items-center justify-between gap-4 min-h-16 border-b border-border-weak-base last:border-none flex-wrap py-3"
+              class="flex items-center justify-between gap-4 py-3 border-b border-border-weak-base last:border-0"
               data-component="custom-provider-section"
             >
               <div class="flex flex-col min-w-0">
-                <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <div class="flex items-center gap-x-3">
                   <ProviderIcon id="synthetic" class="size-5 shrink-0 icon-strong-base" />
-                  <span class="text-14-medium text-text-strong">{language.t("provider.custom.title")}</span>
+                  <span class="text-13-medium text-text-strong">{language.t("provider.custom.title")}</span>
                   <Tag>{language.t("settings.providers.tag.custom")}</Tag>
                 </div>
                 <span class="text-12-regular text-text-weak pl-8">
@@ -223,28 +246,25 @@ export const SettingsProviders: Component = () => {
                 </span>
               </div>
               <Button
-                size="large"
+                size="small"
                 variant="secondary"
                 icon="plus-small"
-                onClick={() => {
-                  dialog.show(() => <DialogCustomProvider back="close" />)
-                }}
+                onClick={() => dialog.show(() => <DialogCustomProvider back="close" />)}
               >
                 {language.t("common.connect")}
               </Button>
             </div>
-          </SettingsList>
+          </div>
+        </Section>
 
-          <Button
-            variant="ghost"
-            class="px-0 py-0 mt-5 text-14-medium text-text-interactive-base text-left justify-start hover:bg-transparent active:bg-transparent"
-            onClick={() => {
-              dialog.show(() => <DialogSelectProvider />)
-            }}
-          >
-            {language.t("dialog.provider.viewAll")}
-          </Button>
-        </div>
+        {/* View All */}
+        <Button
+          variant="ghost"
+          class="px-0 py-0 mt-1 text-13-medium text-text-interactive-base text-left justify-start hover:bg-transparent active:bg-transparent"
+          onClick={() => dialog.show(() => <DialogSelectProvider />)}
+        >
+          {language.t("dialog.provider.viewAll")}
+        </Button>
       </div>
     </div>
   )
