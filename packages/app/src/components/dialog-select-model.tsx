@@ -213,18 +213,18 @@ export const DialogSelectModel: Component<{ provider?: string; model?: ModelStat
   }
 
   return (
-    <Dialog
-      title={language.t("dialog.model.select.title")}
-      action={
-        <Button class="h-7 -my-1 text-14-medium" icon="plus-small" tabIndex={-1} onClick={provider}>
-          {language.t("command.provider.connect")}
-        </Button>
-      }
-    >
-      <ModelList provider={props.provider} model={props.model} onSelect={() => dialog.close()} />
-      <Button variant="ghost" class="ml-3 mt-5 mb-6 text-text-base self-start" onClick={manage}>
-        {language.t("dialog.model.manage")}
-      </Button>
+    <Dialog title={language.t("dialog.model.select.title")}>
+      <div class="flex flex-col h-[500px]">
+        <ModelList provider={props.provider} model={props.model} onSelect={() => dialog.close()} class="flex-1" action={undefined} />
+        <div class="flex items-center justify-between pt-4 border-t border-border-weak-base">
+          <Button variant="ghost" size="small" class="text-text-weak" onClick={manage}>
+            {language.t("dialog.model.manage")}
+          </Button>
+          <Button size="small" icon="plus-small" onClick={provider}>
+            {language.t("command.provider.connect")}
+          </Button>
+        </div>
+      </div>
     </Dialog>
   )
 }

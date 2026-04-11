@@ -26,7 +26,7 @@ import { Tooltip, TooltipKeybind } from "@opencode-ai/ui/tooltip"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { Select } from "@opencode-ai/ui/select"
 import { useDialog } from "@opencode-ai/ui/context/dialog"
-import { ModelSelectorPopover } from "@/components/dialog-select-model"
+import { DialogSelectModel } from "@/components/dialog-select-model"
 import { useProviders } from "@/hooks/use-providers"
 import { useCommand } from "@/context/command"
 import { Persist, persisted } from "@/utils/persist"
@@ -1530,17 +1530,16 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                         title={language.t("command.model.choose")}
                         keybind={command.keybind("model.choose")}
                       >
-                        <ModelSelectorPopover
-                          model={local.model}
-                          triggerAs={Button}
-                          triggerProps={{
-                            variant: "ghost",
-                            size: "normal",
-                            style: control(),
-                            class: "min-w-0 max-w-[320px] text-13-regular text-text-base group",
-                            "data-action": "prompt-model",
+                        <Button
+                          variant="ghost"
+                          size="normal"
+                          style={control()}
+                          class="min-w-0 max-w-[320px] text-13-regular text-text-base group"
+                          data-action="prompt-model"
+                          onClick={() => {
+                            dialog.show(() => <DialogSelectModel model={local.model} />)
+                            restoreFocus()
                           }}
-                          onClose={restoreFocus}
                         >
                           <Show when={local.model.current()?.provider?.id}>
                             <ProviderIcon
@@ -1553,7 +1552,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                             {local.model.current()?.name ?? language.t("dialog.model.select.title")}
                           </span>
                           <Icon name="chevron-down" size="small" class="shrink-0" />
-                        </ModelSelectorPopover>
+                        </Button>
                       </TooltipKeybind>
                     </Show>
                   </div>
