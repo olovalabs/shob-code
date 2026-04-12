@@ -122,11 +122,11 @@ export function createMenu(deps: Deps) {
         {
           label: "Share Feedback",
           click: () =>
-            shell.openExternal("https://github.com/anomalyco/opencode/issues/new?template=feature_request.yml"),
+            shell.openExternal("https://x.com/devshowcse/new?template=feature_request.yml"),
         },
         {
           label: "Report a Bug",
-          click: () => shell.openExternal("https://github.com/anomalyco/opencode/issues/new?template=bug_report.yml"),
+          click: () => shell.openExternal("https://x.com/devshowcse/new?template=bug_report.yml"),
         },
       ],
     },
