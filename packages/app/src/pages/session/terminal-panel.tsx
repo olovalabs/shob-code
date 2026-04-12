@@ -1,9 +1,8 @@
 import { For, Show, createEffect, createMemo, on, onCleanup, onMount } from "solid-js"
 import { createStore } from "solid-js/store"
 import { makeEventListener } from "@solid-primitives/event-listener"
-import { Tabs } from "@opencode-ai/ui/tabs"
 import { ResizeHandle } from "@opencode-ai/ui/resize-handle"
-import { IconButton } from "@opencode-ai/ui/icon-button"
+import { Icon } from "@opencode-ai/ui/icon"
 import { TooltipKeybind } from "@opencode-ai/ui/tooltip"
 import { DragDropProvider, DragDropSensors, DragOverlay, SortableProvider, closestCenter } from "@thisbeyond/solid-dnd"
 import type { DragEvent } from "@thisbeyond/solid-dnd"
@@ -188,7 +187,7 @@ export function TerminalPanel() {
       aria-label={language.t("terminal.title")}
       aria-hidden={!opened()}
       inert={!opened()}
-      class="relative w-full shrink-0 overflow-hidden bg-background-stronger"
+      class="relative w-full shrink-0 bg-background-stronger overflow-hidden"
       classList={{
         "border-t border-border-weak-base": opened(),
         "transition-[height] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[height] motion-reduce:transition-none":
@@ -197,7 +196,7 @@ export function TerminalPanel() {
       style={{ height: opened() ? `${pane()}px` : "0px" }}
     >
       <div
-        class="absolute inset-x-0 top-0 flex flex-col"
+        class="absolute inset-x-0 top-0 flex flex-col overflow-hidden"
         classList={{
           "pointer-events-none": !opened(),
         }}
@@ -247,48 +246,36 @@ export function TerminalPanel() {
           >
             <DragDropSensors />
             <ConstrainDragYAxis />
-            <div class="flex flex-col h-full">
-              <Tabs
-                variant="alt"
-                value={terminal.active()}
-                onChange={(id) => terminal.open(id)}
-                class="!h-auto !flex-none"
-              >
-                <Tabs.List class="h-10 border-b border-border-weaker-base">
+            <div class="flex flex-col h-full overflow-hidden">
+              <div class="h-9 bg-background-base border-b border-border-weaker-base flex items-stretch shrink-0">
+                <div class="flex items-stretch gap-0 overflow-x-auto flex-1 min-w-0 px-2">
                   <SortableProvider ids={ids()}>
                     <For each={all()}>{(pty) => <SortableTerminalTab terminal={pty} onClose={close} />}</For>
                   </SortableProvider>
-                  <div class="h-full flex items-center justify-center">
-                    <TooltipKeybind
-                      title={language.t("command.terminal.new")}
-                      keybind={command.keybind("terminal.new")}
-                      class="flex items-center"
-                    >
-                      <IconButton
-                        icon="plus-small"
-                        variant="ghost"
-                        iconSize="large"
-                        onClick={terminal.new}
-                        aria-label={language.t("command.terminal.new")}
-                      />
-                    </TooltipKeybind>
-                  </div>
-                </Tabs.List>
-              </Tabs>
-              <div class="flex-1 min-h-0 relative">
-                <Show when={terminal.active()} keyed>
+                </div>
+                <button
+                  type="button"
+                  onClick={terminal.new}
+                  aria-label={language.t("command.terminal.new")}
+                  class="h-full px-3 flex items-center justify-center rounded hover:bg-background-base/50 transition-colors text-text-weak hover:text-text-base border-l border-border-weaker-base shrink-0"
+                >
+                  <Icon name="plus-small" class="w-5 h-5" />
+                </button>
+              </div>
+              <div class="flex-1 min-h-0 relative overflow-hidden">
+                <Show when={terminal.active()}>
                   {(id) => {
                     const ops = terminal.bind()
                     return (
-                      <Show when={all().find((pty) => pty.id === id)}>
+                      <Show when={all().find((pty) => pty.id === id())}>
                         {(pty) => (
-                          <div id={`terminal-wrapper-${id}`} class="absolute inset-0">
+                          <div id={`terminal-wrapper-${id()}`} class="absolute inset-0">
                             <Terminal
                               pty={pty()}
                               autoFocus={opened()}
-                              onConnect={() => ops.trim(id)}
+                              onConnect={() => ops.trim(id())}
                               onCleanup={ops.update}
-                              onConnectError={() => ops.clone(id)}
+                              onConnectError={() => ops.clone(id())}
                             />
                           </div>
                         )}
