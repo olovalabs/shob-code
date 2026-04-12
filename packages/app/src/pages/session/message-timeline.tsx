@@ -721,19 +721,6 @@ export function MessageTimeline(props: {
                   "md:max-w-200 md:mx-auto 2xl:max-w-[1000px]": props.centered,
                 }}
               >
-                <Show when={workingStatus() !== "hidden"}>
-                  <div
-                    data-component="session-progress"
-                    data-state={workingStatus()}
-                    aria-hidden="true"
-                    style={{
-                      "--session-progress-color": tint() ?? "var(--icon-interactive-base)",
-                      "--session-progress-ms": `${bar.ms}ms`,
-                    }}
-                  >
-                    <div data-component="session-progress-bar" />
-                  </div>
-                </Show>
                 <div class="h-12 w-full flex items-center justify-between gap-2">
                   <div class="flex items-center gap-1 min-w-0 flex-1 pr-3">
                     <div class="flex items-center min-w-0 grow-1">
