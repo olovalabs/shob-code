@@ -408,6 +408,14 @@ export default function Page() {
   })
   const centered = createMemo(() => isDesktop() && !desktopReviewOpen())
 
+  const terminalOpened = createMemo(() => view().terminal.opened())
+  const terminalHeight = createMemo(() => (terminalOpened() ? layout.terminal.height() : 0))
+  const terminalExceedsThreshold = createMemo(() => {
+    if (!terminalOpened()) return false
+    const viewportHeight = typeof window === "undefined" ? 1000 : (window.visualViewport?.height ?? window.innerHeight)
+    return terminalHeight() > viewportHeight * 0.6
+  })
+
   function normalizeTab(tab: string) {
     if (!tab.startsWith("file://")) return tab
     return file.tab(tab)
@@ -1886,7 +1894,14 @@ export default function Page() {
   return (
     <div class="relative bg-background-base size-full overflow-hidden flex flex-col">
       <SessionHeader />
-      <div class="flex-1 min-h-0 flex flex-col md:flex-row">
+      <div 
+        class="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden"
+        style={{
+          height: terminalExceedsThreshold() ? "0px" : `calc(100% - ${terminalHeight()}px)`,
+          opacity: terminalExceedsThreshold() ? "0" : "1",
+          "pointer-events": terminalExceedsThreshold() ? "none" : "auto",
+        }}
+      >
         <Show when={!isDesktop() && !!params.id}>
           <Tabs value={store.mobileTab} class="h-auto">
             <Tabs.List>

@@ -41,7 +41,7 @@ export function TerminalPanel() {
     view: typeof window === "undefined" ? 1000 : (window.visualViewport?.height ?? window.innerHeight),
   })
 
-  const max = () => store.view * 0.6
+  const max = () => store.view
   const pane = () => Math.min(height(), max())
 
   onMount(() => {
