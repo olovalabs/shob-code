@@ -20,7 +20,13 @@ interface DialogSelectDirectoryProps {
 type Row = {
   absolute: string
   search: string
-  group: "recent" | "folders"
+  group: "recent" | "results"
+  type: "directory" | "file"
+}
+
+type Hit = {
+  absolute: string
+  type: Row["type"]
 }
 
 function cleanInput(value: string) {
@@ -103,7 +109,7 @@ function displayPath(path: string, input: string, home: string) {
   return tildeOf(full, home) || full
 }
 
-function toRow(absolute: string, home: string, group: Row["group"]): Row {
+function toRow(absolute: string, home: string, group: Row["group"], type: Row["type"]): Row {
   const full = trimTrailing(absolute)
   const tilde = tildeOf(full, home)
   const withSlash = (value: string) => {
@@ -115,7 +121,7 @@ function toRow(absolute: string, home: string, group: Row["group"]): Row {
   const search = Array.from(
     new Set([full, withSlash(full), tilde, withSlash(tilde), getFilename(full)].filter(Boolean)),
   ).join("\n")
-  return { absolute: full, search, group }
+  return { absolute: full, search, group, type }
 }
 
 function uniqueRows(rows: Row[]) {
@@ -132,7 +138,7 @@ function useDirectorySearch(args: {
   start: () => string | undefined
   home: () => string
 }) {
-  const cache = new Map<string, Promise<Array<{ name: string; absolute: string }>>>()
+  const cache = new Map<string, Promise<Array<{ name: string; absolute: string; type: Row["type"] }>>>()
   let current = 0
 
   const scoped = (value: string) => {
@@ -151,7 +157,7 @@ function useDirectorySearch(args: {
     return { directory: trimTrailing(base), path: raw }
   }
 
-  const dirs = async (dir: string) => {
+  const nodes = async (dir: string) => {
     const key = trimTrailing(dir)
     const existing = cache.get(key)
     if (existing) return existing
@@ -162,10 +168,11 @@ function useDirectorySearch(args: {
       .catch(() => [])
       .then((nodes) =>
         nodes
-          .filter((n) => n.type === "directory")
+          .filter((n) => n.type === "directory" || n.type === "file")
           .map((n) => ({
             name: n.name,
             absolute: trimTrailing(normalizeDriveRoot(n.absolute)),
+            type: n.type,
           })),
       )
 
@@ -173,10 +180,11 @@ function useDirectorySearch(args: {
     return request
   }
 
-  const match = async (dir: string, query: string, limit: number) => {
-    const items = await dirs(dir)
-    if (!query) return items.slice(0, limit).map((x) => x.absolute)
-    return fuzzysort.go(query, items, { key: "name", limit }).map((x) => x.obj.absolute)
+  const match = async (dir: string, query: string, limit: number, type?: Row["type"]) => {
+    const items = await nodes(dir)
+    const next = type ? items.filter((item) => item.type === type) : items
+    if (!query) return next.slice(0, limit)
+    return fuzzysort.go(query, next, { key: "name", limit }).map((x) => x.obj)
   }
 
   return async (filter: string) => {
@@ -185,22 +193,33 @@ function useDirectorySearch(args: {
 
     const value = cleanInput(filter)
     const scopedInput = scoped(value)
-    if (!scopedInput) return [] as string[]
+    if (!scopedInput) return [] as Hit[]
 
     const raw = normalizeDriveRoot(value)
     const isPath = raw.startsWith("~") || !!rootOf(raw) || raw.includes("/")
     const query = normalizeDriveRoot(scopedInput.path)
 
+    if (!value) {
+      const out = await nodes(scopedInput.directory)
+      if (!active()) return [] as Hit[]
+      return out.slice(0, 80).map((item) => ({ absolute: item.absolute, type: item.type }))
+    }
+
     const find = () =>
       args.sdk.client.find
-        .files({ directory: scopedInput.directory, query, type: "directory", limit: 50 })
+        .files({ directory: scopedInput.directory, query, limit: 80 })
         .then((x) => x.data ?? [])
         .catch(() => [])
 
     if (!isPath) {
       const results = await find()
-      if (!active()) return []
-      return results.map((rel) => joinPath(scopedInput.directory, rel)).slice(0, 50)
+      if (!active()) return [] as Hit[]
+      return results
+        .map((rel) => ({
+          absolute: joinPath(scopedInput.directory, rel),
+          type: rel.endsWith("/") ? ("directory" as const) : ("file" as const),
+        }))
+        .slice(0, 80)
     }
 
     const segments = query.replace(/^\/+/, "").split("/")
@@ -217,31 +236,38 @@ function useDirectorySearch(args: {
         continue
       }
 
-      const next = (await Promise.all(paths.map((p) => match(p, part, branch)))).flat()
+      const next = (await Promise.all(paths.map((p) => match(p, part, branch, "directory"))))
+        .flat()
+        .map((item) => item.absolute)
       if (!active()) return []
       paths = Array.from(new Set(next)).slice(0, cap)
-      if (paths.length === 0) return [] as string[]
+      if (paths.length === 0) return [] as Hit[]
     }
 
-    const out = (await Promise.all(paths.map((p) => match(p, tail, 50)))).flat()
-    if (!active()) return []
-    const deduped = Array.from(new Set(out))
+    const out = (await Promise.all(paths.map((p) => match(p, tail, 80)))).flat()
+    if (!active()) return [] as Hit[]
+    const deduped = Array.from(new Map(out.map((item) => [item.absolute, item])).values())
     const base = raw.startsWith("~") ? trimTrailing(scopedInput.directory) : ""
     const expand = !raw.endsWith("/")
     if (!expand || !tail) {
-      const items = base ? Array.from(new Set([base, ...deduped])) : deduped
-      return items.slice(0, 50)
+      if (!base) return deduped.slice(0, 80)
+      return Array.from(
+        new Map([{ absolute: base, type: "directory" as const }, ...deduped].map((item) => [item.absolute, item])).values(),
+      ).slice(0, 80)
     }
 
     const needle = tail.toLowerCase()
-    const exact = deduped.filter((p) => getFilename(p).toLowerCase() === needle)
+    const exact = deduped.filter((item) => item.type === "directory" && getFilename(item.absolute).toLowerCase() === needle)
     const target = exact[0]
-    if (!target) return deduped.slice(0, 50)
+    if (!target) return deduped.slice(0, 80)
 
-    const children = await match(target, "", 30)
-    if (!active()) return []
-    const items = Array.from(new Set([...deduped, ...children]))
-    return (base ? Array.from(new Set([base, ...items])) : items).slice(0, 50)
+    const children = await match(target.absolute, "", 40)
+    if (!active()) return [] as Hit[]
+    const items = Array.from(new Map([...deduped, ...children].map((item) => [item.absolute, item])).values())
+    if (!base) return items.slice(0, 80)
+    return Array.from(
+      new Map([{ absolute: base, type: "directory" as const }, ...items].map((item) => [item.absolute, item])).values(),
+    ).slice(0, 80)
   }
 }
 
@@ -301,7 +327,7 @@ export function DialogSelectDirectory(props: DialogSelectDirectoryProps) {
       .sort((a, b) => b.at - a.at || a.index - b.index)
       .slice(0, 5)
       .map(({ project }) => {
-        const row = toRow(project.worktree, home(), "recent")
+        const row = toRow(project.worktree, home(), "recent", "directory")
         const name = project.name || getFilename(project.worktree)
         return {
           ...row,
@@ -312,8 +338,8 @@ export function DialogSelectDirectory(props: DialogSelectDirectoryProps) {
 
   const items = async (value: string) => {
     const results = await directories(value)
-    const directoryRows = results.map((absolute) => toRow(absolute, home(), "folders"))
-    return uniqueRows([...recentProjects(), ...directoryRows])
+    const resultRows = results.map((item) => toRow(item.absolute, home(), "results", item.type))
+    return uniqueRows([...recentProjects(), ...resultRows])
   }
 
   function resolve(absolute: string) {
@@ -336,7 +362,7 @@ export function DialogSelectDirectory(props: DialogSelectDirectoryProps) {
           return a.category === "recent" ? -1 : 1
         }}
         groupHeader={(group) =>
-          group.category === "recent" ? language.t("home.recentProjects") : language.t("command.project.open")
+          group.category === "recent" ? language.t("home.recentProjects") : language.t("dialog.directory.search.placeholder")
         }
         ref={(r) => (list = r)}
         onFilter={(value) => setFilter(cleanInput(value))}
@@ -348,12 +374,13 @@ export function DialogSelectDirectory(props: DialogSelectDirectoryProps) {
           e.preventDefault()
           e.stopPropagation()
 
+          if (item.type !== "directory") return
           const value = displayPath(item.absolute, filter(), home())
           list?.setFilter(value.endsWith("/") ? value : value + "/")
         }}
         onSelect={(path) => {
           if (!path) return
-          resolve(path.absolute)
+          resolve(path.type === "directory" ? path.absolute : getDirectory(path.absolute))
         }}
       >
         {(item) => {
@@ -362,10 +389,10 @@ export function DialogSelectDirectory(props: DialogSelectDirectoryProps) {
             return (
               <div class="w-full flex items-center justify-between rounded-md">
                 <div class="flex items-center gap-x-3 grow min-w-0">
-                  <FileIcon node={{ path: item.absolute, type: "directory" }} class="shrink-0 size-4" />
+                  <FileIcon node={{ path: item.absolute, type: item.type }} class="shrink-0 size-4" />
                   <div class="flex items-center text-14-regular min-w-0">
                     <span class="text-text-strong whitespace-nowrap">~</span>
-                    <span class="text-text-weak whitespace-nowrap">/</span>
+                    <span class="text-text-weak whitespace-nowrap">{item.type === "directory" ? "/" : ""}</span>
                   </div>
                 </div>
               </div>
@@ -374,13 +401,13 @@ export function DialogSelectDirectory(props: DialogSelectDirectoryProps) {
           return (
             <div class="w-full flex items-center justify-between rounded-md">
               <div class="flex items-center gap-x-3 grow min-w-0">
-                <FileIcon node={{ path: item.absolute, type: "directory" }} class="shrink-0 size-4" />
+                <FileIcon node={{ path: item.absolute, type: item.type }} class="shrink-0 size-4" />
                 <div class="flex items-center text-14-regular min-w-0">
                   <span class="text-text-weak whitespace-nowrap overflow-hidden overflow-ellipsis truncate min-w-0">
                     {getDirectory(path)}
                   </span>
                   <span class="text-text-strong whitespace-nowrap">{getFilename(path)}</span>
-                  <span class="text-text-weak whitespace-nowrap">/</span>
+                  <span class="text-text-weak whitespace-nowrap">{item.type === "directory" ? "/" : ""}</span>
                 </div>
               </div>
             </div>
