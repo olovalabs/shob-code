@@ -58,6 +58,7 @@ logger.log("app starting", {
 setupApp()
 
 function setupApp() {
+  if (process.platform === "win32") app.setAppUserModelId(APP_IDS[CHANNEL])
   ensureLoopbackNoProxy()
   app.commandLine.appendSwitch("proxy-bypass-list", "<-loopback>")
 
