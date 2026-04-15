@@ -10,26 +10,28 @@ describe("promptPlaceholder", () => {
       commentCount: 0,
       example: "example",
       suggest: true,
+      hasContext: false,
       t,
     })
     expect(value).toBe("prompt.placeholder.shell")
   })
 
   test("returns summarize placeholders for comment context", () => {
-    expect(promptPlaceholder({ mode: "normal", commentCount: 1, example: "example", suggest: true, t })).toBe(
+    expect(promptPlaceholder({ mode: "normal", commentCount: 1, example: "example", suggest: true, hasContext: false, t })).toBe(
       "prompt.placeholder.summarizeComment",
     )
-    expect(promptPlaceholder({ mode: "normal", commentCount: 2, example: "example", suggest: true, t })).toBe(
+    expect(promptPlaceholder({ mode: "normal", commentCount: 2, example: "example", suggest: true, hasContext: false, t })).toBe(
       "prompt.placeholder.summarizeComments",
     )
   })
 
-  test("returns default placeholder with example when suggestions enabled", () => {
+  test("returns default placeholder with example when suggestions enabled and no context", () => {
     const value = promptPlaceholder({
       mode: "normal",
       commentCount: 0,
       example: "translated-example",
       suggest: true,
+      hasContext: false,
       t,
     })
     expect(value).toBe("prompt.placeholder.normal:translated-example")
@@ -41,8 +43,21 @@ describe("promptPlaceholder", () => {
       commentCount: 0,
       example: "translated-example",
       suggest: false,
+      hasContext: false,
       t,
     })
     expect(value).toBe("prompt.placeholder.simple")
+  })
+
+  test("returns followup placeholder when has context", () => {
+    const value = promptPlaceholder({
+      mode: "normal",
+      commentCount: 0,
+      example: "translated-example",
+      suggest: true,
+      hasContext: true,
+      t,
+    })
+    expect(value).toBe("prompt.placeholder.followup")
   })
 })

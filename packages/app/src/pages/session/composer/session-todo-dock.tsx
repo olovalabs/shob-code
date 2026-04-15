@@ -2,6 +2,7 @@ import type { Todo } from "@opencode-ai/sdk/v2"
 import { AnimatedNumber } from "@opencode-ai/ui/animated-number"
 import { Checkbox } from "@opencode-ai/ui/checkbox"
 import { DockTray } from "@opencode-ai/ui/dock-surface"
+import { Icon } from "@opencode-ai/ui/icon"
 import { IconButton } from "@opencode-ai/ui/icon-button"
 import { useSpring } from "@opencode-ai/ui/motion-spring"
 import { TextReveal } from "@opencode-ai/ui/text-reveal"
@@ -124,7 +125,7 @@ export function SessionTodoDock(props: {
       <div ref={contentRef}>
         <div
           data-action="session-todo-toggle"
-          class="pl-3 pr-2 py-2 flex items-center gap-2 overflow-visible"
+          class="pl-3 pr-2 py-2.5 flex items-center gap-2 overflow-visible"
           role="button"
           tabIndex={0}
           onClick={toggle}
@@ -134,8 +135,9 @@ export function SessionTodoDock(props: {
             toggle()
           }}
         >
+          <Icon name="check" class="size-4 text-text-weak shrink-0" />
           <span
-            class="text-14-regular text-text-strong cursor-default inline-flex items-baseline shrink-0 overflow-visible"
+            class="text-13-medium text-text-strong cursor-default inline-flex items-baseline shrink-0 overflow-visible"
             aria-label={label()}
             style={{
               "--tool-motion-odometer-ms": "600ms",
@@ -167,7 +169,7 @@ export function SessionTodoDock(props: {
             }}
           >
             <TextReveal
-              class="text-14-regular text-text-base cursor-default"
+              class="text-13-regular text-text-base cursor-default"
               text={store.collapsed ? preview() : undefined}
               duration={600}
               travel={25}
@@ -225,7 +227,7 @@ function TodoList(props: { todos: Todo[] }) {
   return (
     <div class="relative">
       <div
-        class="px-3 pb-11 flex flex-col gap-1.5 max-h-42 overflow-y-auto no-scrollbar"
+        class="px-3 pb-3 flex flex-col gap-1 max-h-42 overflow-y-auto no-scrollbar"
         style={{ "overflow-anchor": "none" }}
         onScroll={(e) => {
           setStore("stuck", e.currentTarget.scrollTop > 0)
@@ -250,7 +252,7 @@ function TodoList(props: { todos: Todo[] }) {
               <TextStrikethrough
                 active={todo().status === "completed" || todo().status === "cancelled"}
                 text={todo().content}
-                class="text-14-regular min-w-0 break-words"
+                class="text-13-regular min-w-0 break-words"
                 style={{
                   "line-height": "var(--line-height-normal)",
                   transition:

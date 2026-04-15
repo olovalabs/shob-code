@@ -346,6 +346,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
       commentCount: commentCount(),
       example: suggest() ? language.t(EXAMPLES[store.placeholder]) : "",
       suggest: suggest(),
+      hasContext: hasUserPrompt(),
       t: (key, params) => language.t(key as Parameters<typeof language.t>[0], params as never),
     }),
   )
@@ -1426,7 +1427,7 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
             </div>
           </div>
 
-          <div class="pointer-events-none absolute bottom-2 left-2">
+          <div class="pointer-events-none absolute bottom-2 left-2 flex items-center gap-2">
             <div
               aria-hidden={store.mode !== "normal"}
               class="pointer-events-auto"
@@ -1454,149 +1455,123 @@ export const PromptInput: Component<PromptInputProps> = (props) => {
                 </Button>
               </TooltipKeybind>
             </div>
+
+            <Show when={store.mode === "normal"}>
+              <div class="flex items-center gap-1 pointer-events-auto" style={{ "pointer-events": buttonsSpring() > 0.5 ? "auto" : "none" }}>
+                <TooltipKeybind
+                  placement="top"
+                  gutter={4}
+                  title={language.t("command.agent.cycle")}
+                  keybind={command.keybind("agent.cycle")}
+                >
+                  <Select
+                    size="normal"
+                    options={agentNames()}
+                    current={local.agent.current()?.name ?? ""}
+                    onSelect={(value) => {
+                      local.agent.set(value)
+                      restoreFocus()
+                    }}
+                    class="capitalize max-w-[100px] text-text-base"
+                    valueClass="truncate text-13-regular text-text-base"
+                    triggerStyle={control()}
+                    triggerProps={{ "data-action": "prompt-agent" }}
+                    variant="ghost"
+                  />
+                </TooltipKeybind>
+                <Show when={providers.paid().length > 0} fallback={(
+                  <TooltipKeybind
+                    placement="top"
+                    gutter={4}
+                    title={language.t("command.model.choose")}
+                    keybind={command.keybind("model.choose")}
+                  >
+                    <Button
+                      data-action="prompt-model"
+                      as="div"
+                      variant="ghost"
+                      size="normal"
+                      class="min-w-0 max-w-[120px] text-13-regular text-text-base group"
+                      style={control()}
+                      onClick={() => {
+                        void import("@/components/dialog-select-model-unpaid").then((x) => {
+                          dialog.show(() => <x.DialogSelectModelUnpaid model={local.model} />)
+                        })
+                      }}
+                    >
+                      <Show when={local.model.current()?.provider?.id}>
+                        <ProviderIcon
+                          id={local.model.current()?.provider?.id ?? ""}
+                          class="size-4 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity duration-150"
+                          style={{ "will-change": "opacity", transform: "translateZ(0)" }}
+                        />
+                      </Show>
+                      <span class="truncate">
+                        {local.model.current()?.name ?? language.t("dialog.model.select.title")}
+                      </span>
+                      <Icon name="chevron-down" size="small" class="shrink-0" />
+                    </Button>
+                  </TooltipKeybind>
+                )}>
+                  <TooltipKeybind
+                    placement="top"
+                    gutter={4}
+                    title={language.t("command.model.choose")}
+                    keybind={command.keybind("model.choose")}
+                  >
+                    <Button
+                      variant="ghost"
+                      size="normal"
+                      style={control()}
+                      class="min-w-0 max-w-[120px] text-13-regular text-text-base group"
+                      data-action="prompt-model"
+                      onClick={() => {
+                        dialog.show(() => <DialogSelectModel model={local.model} />)
+                        restoreFocus()
+                      }}
+                    >
+                      <Show when={local.model.current()?.provider?.id}>
+                        <ProviderIcon
+                          id={local.model.current()?.provider?.id ?? ""}
+                          class="size-4 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity duration-150"
+                          style={{ "will-change": "opacity", transform: "translateZ(0)" }}
+                        />
+                      </Show>
+                      <span class="truncate">
+                        {local.model.current()?.name ?? language.t("dialog.model.select.title")}
+                      </span>
+                      <Icon name="chevron-down" size="small" class="shrink-0" />
+                    </Button>
+                  </TooltipKeybind>
+                </Show>
+                <TooltipKeybind
+                  placement="top"
+                  gutter={4}
+                  title={language.t("command.model.variant.cycle")}
+                  keybind={command.keybind("model.variant.cycle")}
+                >
+                  <Select
+                    size="normal"
+                    options={variants()}
+                    current={local.model.variant.current() ?? "default"}
+                    label={(x) => (x === "default" ? language.t("common.default") : x)}
+                    onSelect={(value) => {
+                      local.model.variant.set(value === "default" ? undefined : value)
+                      restoreFocus()
+                    }}
+                    class="capitalize max-w-[100px] text-text-base"
+                    valueClass="truncate text-13-regular text-text-base"
+                    triggerStyle={control()}
+                    triggerProps={{ "data-action": "prompt-model-variant" }}
+                    variant="ghost"
+                  />
+                </TooltipKeybind>
+              </div>
+            </Show>
           </div>
         </div>
       </DockShellForm>
       </div>
-      <Show when={store.mode === "normal" || store.mode === "shell"}>
-        <DockTray attach="top">
-          <div class="px-1.75 pt-5.5 pb-2 flex items-center gap-2 min-w-0">
-            <div class="flex items-center gap-1.5 min-w-0 flex-1 relative">
-              <div
-                class="h-7 flex items-center gap-1.5 max-w-[160px] min-w-0 absolute inset-y-0 left-0"
-                style={{
-                  padding: "0 4px 0 8px",
-                  ...shell(),
-                }}
-              >
-                <span class="truncate text-13-medium text-text-strong">{language.t("prompt.mode.shell")}</span>
-                <div class="size-4 shrink-0" />
-              </div>
-              <div class="flex items-center gap-1.5 min-w-0 flex-1">
-                <div data-component="prompt-agent-control">
-                  <TooltipKeybind
-                    placement="top"
-                    gutter={4}
-                    title={language.t("command.agent.cycle")}
-                    keybind={command.keybind("agent.cycle")}
-                  >
-                    <Select
-                      size="normal"
-                      options={agentNames()}
-                      current={local.agent.current()?.name ?? ""}
-                      onSelect={(value) => {
-                        local.agent.set(value)
-                        restoreFocus()
-                      }}
-                      class="capitalize max-w-[160px] text-text-base"
-                      valueClass="truncate text-13-regular text-text-base"
-                      triggerStyle={control()}
-                      triggerProps={{ "data-action": "prompt-agent" }}
-                      variant="ghost"
-                    />
-                  </TooltipKeybind>
-                </div>
-                <Show when={store.mode !== "shell"}>
-                  <div data-component="prompt-model-control">
-                    <Show
-                      when={providers.paid().length > 0}
-                      fallback={
-                        <TooltipKeybind
-                          placement="top"
-                          gutter={4}
-                          title={language.t("command.model.choose")}
-                          keybind={command.keybind("model.choose")}
-                        >
-                          <Button
-                            data-action="prompt-model"
-                            as="div"
-                            variant="ghost"
-                            size="normal"
-                            class="min-w-0 max-w-[320px] text-13-regular text-text-base group"
-                            style={control()}
-                            onClick={() => {
-                              void import("@/components/dialog-select-model-unpaid").then((x) => {
-                                dialog.show(() => <x.DialogSelectModelUnpaid model={local.model} />)
-                              })
-                            }}
-                          >
-                            <Show when={local.model.current()?.provider?.id}>
-                              <ProviderIcon
-                                id={local.model.current()?.provider?.id ?? ""}
-                                class="size-4 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity duration-150"
-                                style={{ "will-change": "opacity", transform: "translateZ(0)" }}
-                              />
-                            </Show>
-                            <span class="truncate">
-                              {local.model.current()?.name ?? language.t("dialog.model.select.title")}
-                            </span>
-                            <Icon name="chevron-down" size="small" class="shrink-0" />
-                          </Button>
-                        </TooltipKeybind>
-                      }
-                    >
-                      <TooltipKeybind
-                        placement="top"
-                        gutter={4}
-                        title={language.t("command.model.choose")}
-                        keybind={command.keybind("model.choose")}
-                      >
-                        <Button
-                          variant="ghost"
-                          size="normal"
-                          style={control()}
-                          class="min-w-0 max-w-[320px] text-13-regular text-text-base group"
-                          data-action="prompt-model"
-                          onClick={() => {
-                            dialog.show(() => <DialogSelectModel model={local.model} />)
-                            restoreFocus()
-                          }}
-                        >
-                          <Show when={local.model.current()?.provider?.id}>
-                            <ProviderIcon
-                              id={local.model.current()?.provider?.id ?? ""}
-                              class="size-4 shrink-0 opacity-40 group-hover:opacity-100 transition-opacity duration-150"
-                              style={{ "will-change": "opacity", transform: "translateZ(0)" }}
-                            />
-                          </Show>
-                          <span class="truncate">
-                            {local.model.current()?.name ?? language.t("dialog.model.select.title")}
-                          </span>
-                          <Icon name="chevron-down" size="small" class="shrink-0" />
-                        </Button>
-                      </TooltipKeybind>
-                    </Show>
-                  </div>
-                  <div data-component="prompt-variant-control">
-                    <TooltipKeybind
-                      placement="top"
-                      gutter={4}
-                      title={language.t("command.model.variant.cycle")}
-                      keybind={command.keybind("model.variant.cycle")}
-                    >
-                      <Select
-                        size="normal"
-                        options={variants()}
-                        current={local.model.variant.current() ?? "default"}
-                        label={(x) => (x === "default" ? language.t("common.default") : x)}
-                        onSelect={(value) => {
-                          local.model.variant.set(value === "default" ? undefined : value)
-                          restoreFocus()
-                        }}
-                        class="capitalize max-w-[160px] text-text-base"
-                        valueClass="truncate text-13-regular text-text-base"
-                        triggerStyle={control()}
-                        triggerProps={{ "data-action": "prompt-model-variant" }}
-                        variant="ghost"
-                      />
-                    </TooltipKeybind>
-                  </div>
-                </Show>
-              </div>
-            </div>
-          </div>
-        </DockTray>
-      </Show>
     </div>
   )
 }
