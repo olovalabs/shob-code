@@ -5,31 +5,32 @@ import { Footer } from "~/component/footer"
 import { Legal } from "~/component/legal"
 import { useI18n } from "~/context/i18n"
 import { LocaleLinks } from "~/component/locale-links"
-import previewLogoLight from "../../asset/brand/preview-opencode-logo-light.png"
-import previewLogoDark from "../../asset/brand/preview-opencode-logo-dark.png"
-import previewLogoLightSquare from "../../asset/brand/preview-opencode-logo-light-square.png"
-import previewLogoDarkSquare from "../../asset/brand/preview-opencode-logo-dark-square.png"
-import previewWordmarkLight from "../../asset/brand/preview-opencode-wordmark-light.png"
-import previewWordmarkDark from "../../asset/brand/preview-opencode-wordmark-dark.png"
-import previewWordmarkSimpleLight from "../../asset/brand/preview-opencode-wordmark-simple-light.png"
-import previewWordmarkSimpleDark from "../../asset/brand/preview-opencode-wordmark-simple-dark.png"
-import logoLightPng from "../../asset/brand/opencode-logo-light.png"
-import logoDarkPng from "../../asset/brand/opencode-logo-dark.png"
-import logoLightSquarePng from "../../asset/brand/opencode-logo-light-square.png"
-import logoDarkSquarePng from "../../asset/brand/opencode-logo-dark-square.png"
-import wordmarkLightPng from "../../asset/brand/opencode-wordmark-light.png"
-import wordmarkDarkPng from "../../asset/brand/opencode-wordmark-dark.png"
-import wordmarkSimpleLightPng from "../../asset/brand/opencode-wordmark-simple-light.png"
-import wordmarkSimpleDarkPng from "../../asset/brand/opencode-wordmark-simple-dark.png"
-import logoLightSvg from "../../asset/brand/opencode-logo-light.svg"
-import logoDarkSvg from "../../asset/brand/opencode-logo-dark.svg"
-import logoLightSquareSvg from "../../asset/brand/opencode-logo-light-square.svg"
-import logoDarkSquareSvg from "../../asset/brand/opencode-logo-dark-square.svg"
-import wordmarkLightSvg from "../../asset/brand/opencode-wordmark-light.svg"
-import wordmarkDarkSvg from "../../asset/brand/opencode-wordmark-dark.svg"
-import wordmarkSimpleLightSvg from "../../asset/brand/opencode-wordmark-simple-light.svg"
-import wordmarkSimpleDarkSvg from "../../asset/brand/opencode-wordmark-simple-dark.svg"
+import logo from "../../../../../logo.png"
 const brandAssets = "/opencode-brand-assets.zip"
+const previewLogoLight = logo
+const previewLogoDark = logo
+const previewLogoLightSquare = logo
+const previewLogoDarkSquare = logo
+const previewWordmarkLight = logo
+const previewWordmarkDark = logo
+const previewWordmarkSimpleLight = logo
+const previewWordmarkSimpleDark = logo
+const logoLightPng = logo
+const logoDarkPng = logo
+const logoLightSquarePng = logo
+const logoDarkSquarePng = logo
+const wordmarkLightPng = logo
+const wordmarkDarkPng = logo
+const wordmarkSimpleLightPng = logo
+const wordmarkSimpleDarkPng = logo
+const logoLightSvg = logo
+const logoDarkSvg = logo
+const logoLightSquareSvg = logo
+const logoDarkSquareSvg = logo
+const wordmarkLightSvg = logo
+const wordmarkDarkSvg = logo
+const wordmarkSimpleLightSvg = logo
+const wordmarkSimpleDarkSvg = logo
 
 export default function Brand() {
   const i18n = useI18n()

@@ -1,7 +1,4 @@
-import logoLight from "../asset/logo-ornate-light.svg"
-import logoDark from "../asset/logo-ornate-dark.svg"
-import copyLogoLight from "../asset/lander/logo-light.svg"
-import copyLogoDark from "../asset/lander/logo-dark.svg"
+import logo from "../../../../logo.png"
 import copyWordmarkLight from "../asset/lander/wordmark-light.svg"
 import copyWordmarkDark from "../asset/lander/wordmark-dark.svg"
 import copyBrandAssetsLight from "../asset/lander/brand-assets-light.svg"
@@ -124,8 +121,8 @@ export function Header(props: { zen?: boolean; go?: boolean; hideGetStarted?: bo
     <section data-component="top">
       <div onContextMenu={handleLogoContextMenu}>
         <A href={language.route("/")}>
-          <img data-slot="logo light" src={logoLight} alt={i18n.t("nav.logoAlt")} width="189" height="34" />
-          <img data-slot="logo dark" src={logoDark} alt={i18n.t("nav.logoAlt")} width="189" height="34" />
+          <img data-slot="logo light" src={logo} alt={i18n.t("nav.logoAlt")} />
+          <img data-slot="logo dark" src={logo} alt={i18n.t("nav.logoAlt")} />
         </A>
       </div>
 
@@ -135,8 +132,8 @@ export function Header(props: { zen?: boolean; go?: boolean; hideGetStarted?: bo
           style={`left: ${store.contextMenuPosition.x}px; top: ${store.contextMenuPosition.y}px;`}
         >
           <button class="context-menu-item" onClick={copyLogoToClipboard}>
-            <img data-slot="copy light" src={copyLogoLight} alt="" />
-            <img data-slot="copy dark" src={copyLogoDark} alt="" />
+            <img data-slot="copy light" src={logo} alt="" />
+            <img data-slot="copy dark" src={logo} alt="" />
             {i18n.t("nav.context.copyLogo")}
           </button>
           <button class="context-menu-item" onClick={copyWordmarkToClipboard}>
