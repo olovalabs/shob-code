@@ -1023,7 +1023,7 @@ export default function Layout(props: ParentProps) {
         title: language.t("command.project.open"),
         category: language.t("command.category.project"),
         keybind: "mod+o",
-        onSelect: () => chooseProject(),
+        onSelect: (source) => chooseProject(source),
       },
       {
         id: "project.previous",
@@ -1449,7 +1449,7 @@ export default function Layout(props: ParentProps) {
     })
   }
 
-  async function chooseProject() {
+  async function chooseProject(source?: "palette" | "keybind" | "slash") {
     function resolve(result: string | string[] | null) {
       if (Array.isArray(result)) {
         for (const directory of result) {
@@ -1459,6 +1459,17 @@ export default function Layout(props: ParentProps) {
       } else if (result) {
         openProject(result)
       }
+    }
+
+    const spotlight = source === "keybind"
+
+    if (!spotlight && platform.openDirectoryPickerDialog && server.isLocal()) {
+      const result = await platform.openDirectoryPickerDialog({
+        title: language.t("command.project.open"),
+        multiple: true,
+      })
+      resolve(result)
+      return
     }
 
     const run = ++dialogRun
