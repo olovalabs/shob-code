@@ -14,6 +14,7 @@ import { SessionFollowupDock } from "@/pages/session/composer/session-followup-d
 import { SessionRevertDock } from "@/pages/session/composer/session-revert-dock"
 import type { SessionComposerState } from "@/pages/session/composer/session-composer-state"
 import { SessionTodoDock } from "@/pages/session/composer/session-todo-dock"
+import { TurnTimer } from "@/pages/session/composer/turn-timer"
 import type { FollowupDraft } from "@/components/prompt-input/submit"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
 
@@ -246,40 +247,45 @@ export function SessionComposerRegion(props: {
                   onEdit={props.followup!.onEdit}
                 />
               </Show>
-              <Show
-                when={child()}
-                fallback={
-                  <Show when={!props.state.blocked()}>
-                    <PromptInput
-                      ref={props.inputRef}
-                      newSessionWorktree={props.newSessionWorktree}
-                      onNewSessionWorktreeReset={props.onNewSessionWorktreeReset}
-                      edit={props.followup?.edit}
-                      onEditLoaded={props.followup?.onEditLoaded}
-                      shouldQueue={props.followup?.queue}
-                      onQueue={props.followup?.onQueue}
-                      onAbort={props.followup?.onAbort}
-                      onSubmit={props.onSubmit}
-                    />
-                  </Show>
-                }
-              >
-                <div
-                  ref={props.inputRef}
-                  class="w-full rounded-[12px] border border-border-weak-base bg-background-base p-3 text-16-regular text-text-weak"
-                >
-                  <span>{language.t("session.child.promptDisabled")} </span>
-                  <Show when={parentID()}>
-                    <button
-                      type="button"
-                      class="text-text-base transition-colors hover:text-text-strong"
-                      onClick={openParent}
-                    >
-                      {language.t("session.child.backToParent")}
-                    </button>
-                  </Show>
+              <div class="relative">
+                <div class="absolute -top-8 left-1 pointer-events-none z-50">
+                  <TurnTimer sessionID={route.params.id} />
                 </div>
-              </Show>
+                <Show
+                  when={child()}
+                  fallback={
+                    <Show when={!props.state.blocked()}>
+                      <PromptInput
+                        ref={props.inputRef}
+                        newSessionWorktree={props.newSessionWorktree}
+                        onNewSessionWorktreeReset={props.onNewSessionWorktreeReset}
+                        edit={props.followup?.edit}
+                        onEditLoaded={props.followup?.onEditLoaded}
+                        shouldQueue={props.followup?.queue}
+                        onQueue={props.followup?.onQueue}
+                        onAbort={props.followup?.onAbort}
+                        onSubmit={props.onSubmit}
+                      />
+                    </Show>
+                  }
+                >
+                  <div
+                    ref={props.inputRef}
+                    class="w-full rounded-[12px] border border-border-weak-base bg-background-base p-3 text-16-regular text-text-weak"
+                  >
+                    <span>{language.t("session.child.promptDisabled")} </span>
+                    <Show when={parentID()}>
+                      <button
+                        type="button"
+                        class="text-text-base transition-colors hover:text-text-strong"
+                        onClick={openParent}
+                      >
+                        {language.t("session.child.backToParent")}
+                      </button>
+                    </Show>
+                  </div>
+                </Show>
+              </div>
             </div>
           </Show>
         </Show>
