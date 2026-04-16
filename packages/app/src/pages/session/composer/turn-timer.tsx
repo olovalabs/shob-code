@@ -79,7 +79,7 @@ export function TurnTimer(props: { sessionID?: string }) {
   const currentActivity = createMemo(() => {
     const parts = activeParts()
     
-    const tool = parts.filter(p => p.type === "tool" && p.state.type !== "completed").at(-1)
+    const tool = parts.filter(p => p.type === "tool" && p.state.status !== "completed").at(-1)
     if (tool && tool.type === "tool") {
       const name = tool.tool.toLowerCase()
       if (name.includes("search") || name.includes("grep") || name.includes("find") || name.includes("ls") || name.includes("glob")) return "Searching"
