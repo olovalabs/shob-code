@@ -14,7 +14,7 @@ import { SessionFollowupDock } from "@/pages/session/composer/session-followup-d
 import { SessionRevertDock } from "@/pages/session/composer/session-revert-dock"
 import type { SessionComposerState } from "@/pages/session/composer/session-composer-state"
 import { SessionTodoDock } from "@/pages/session/composer/session-todo-dock"
-import { TurnTimer } from "@/pages/session/composer/turn-timer"
+import { TurnTimer, Dots } from "@/pages/session/composer/turn-timer"
 import type { FollowupDraft } from "@/components/prompt-input/submit"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
 
@@ -189,7 +189,12 @@ export function SessionComposerRegion(props: {
                   )}
                 </Show>
                 <div class="w-full min-h-32 md:min-h-40 rounded-md border border-border-weak-base bg-background-base/50 px-4 py-3 text-text-weak whitespace-pre-wrap pointer-events-none">
-                  {handoffPrompt() || language.t("prompt.loading")}
+                  {handoffPrompt() || (
+                    <span class="flex items-center">
+                      {language.t("prompt.loading").replace("...", "")}
+                      <Dots />
+                    </span>
+                  )}
                 </div>
               </>
             }

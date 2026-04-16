@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, onCleanup, Show } from "solid-js"
+import { createEffect, createMemo, createSignal, For, onCleanup, Show } from "solid-js"
 import { Spinner } from "@opencode-ai/ui/spinner"
 import { useSync } from "@/context/sync"
 
@@ -51,6 +51,34 @@ export const keywords = [
   'Unfurling', 'Unravelling', 'Vibing', 'Waddling', 'Wandering', 'Warping', 'Whatchamacalliting', 'Whirlpooling',
   'Whirring', 'Whisking', 'Wibbling', 'Working', 'Wrangling', 'Zesting', 'Zigzagging',
 ];
+
+export function Dots() {
+  return (
+    <span class="inline-flex items-center gap-1 ml-1.5 h-3">
+      <span
+        class="size-1 rounded-full bg-icon-info-base/60"
+        style={{
+          animation: "var(--animate-pulse-scale)",
+          "animation-delay": "0s",
+        }}
+      />
+      <span
+        class="size-1 rounded-full bg-icon-info-base/60"
+        style={{
+          animation: "var(--animate-pulse-scale)",
+          "animation-delay": "0.2s",
+        }}
+      />
+      <span
+        class="size-1 rounded-full bg-icon-info-base/60"
+        style={{
+          animation: "var(--animate-pulse-scale)",
+          "animation-delay": "0.4s",
+        }}
+      />
+    </span>
+  )
+}
 
 export function TurnTimer(props: { sessionID?: string }) {
   const sync = useSync()
@@ -146,8 +174,18 @@ export function TurnTimer(props: { sessionID?: string }) {
           <span class="text-11-bold italic font-mono text-icon-info-base tabular-nums">
             {format(elapsed())}
           </span>
-          <span class="text-11-bold italic text-icon-info-base uppercase tracking-wider animate-pulse">
-            {currentActivity()}
+          <span class="text-11-bold italic text-icon-info-base uppercase tracking-wider flex items-center">
+            <For each={currentActivity().split("")}>
+              {(char, i) => (
+                <span
+                  class="animate-in fade-in slide-in-from-bottom-1 duration-500 fill-mode-both"
+                  style={{ "animation-delay": `${i() * 30}ms` }}
+                >
+                  {char === " " ? "\u00A0" : char}
+                </span>
+              )}
+            </For>
+            <Dots />
           </span>
         </div>
         
