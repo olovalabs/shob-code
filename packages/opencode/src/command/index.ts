@@ -13,7 +13,47 @@ import PROMPT_INITIALIZE from "./template/initialize.txt"
 import PROMPT_REVIEW from "./template/review.txt"
 
 export namespace Command {
-  const log = Log.create({ service: "command" })
+const log = Log.create({ service: "command" })
+
+const PROMPT_CREATE_SKILLS = [
+  "Create new OpenCode skill from user request.",
+  "",
+  "Request:",
+  "$ARGUMENTS",
+  "",
+  "Requirements:",
+  "- Create exactly one file at skills/<slug>/SKILL.md.",
+  "- Use lowercase kebab-case slug from request topic.",
+  "- File must start with yaml frontmatter:",
+  "  ---",
+  "  name: <Skill Name>",
+  "  description: <one-line description>",
+  "  ---",
+  "- Then write practical skill guide with clear workflow steps.",
+  "- Keep content concise, actionable, production-ready.",
+  "- Prefer ASCII.",
+  "",
+  "Validation:",
+  "- Ensure file path exists and content matches format above.",
+  "- At end, print created file path and one-line usage note.",
+].join("\n")
+
+const PROMPT_REMOVE_SKILL = [
+  "Remove OpenCode skill by name.",
+  "",
+  "Input skill:",
+  "$ARGUMENTS",
+  "",
+  "Requirements:",
+  "- Find matching SKILL.md for given skill name.",
+  "- Delete skill folder safely from skills/<slug>/ or .opencode skill paths in workspace.",
+  "- Do not touch unrelated files.",
+  "- If not found, explain clearly and stop.",
+  "",
+  "Validation:",
+  "- Confirm deleted path.",
+  "- Confirm skill no longer appears in list after refresh.",
+].join("\n")
 
   type State = {
     commands: Record<string, Info>
@@ -64,6 +104,8 @@ export namespace Command {
   export const Default = {
     INIT: "init",
     REVIEW: "review",
+    CREATE_SKILLS: "create-skills",
+    REMOVE_SKILL: "remove-skill",
   } as const
 
   export interface Interface {
@@ -102,6 +144,24 @@ export namespace Command {
           },
           subtask: true,
           hints: hints(PROMPT_REVIEW),
+        }
+        commands[Default.CREATE_SKILLS] = {
+          name: Default.CREATE_SKILLS,
+          description: "create custom skill from topic",
+          source: "command",
+          get template() {
+            return PROMPT_CREATE_SKILLS
+          },
+          hints: hints(PROMPT_CREATE_SKILLS),
+        }
+        commands[Default.REMOVE_SKILL] = {
+          name: Default.REMOVE_SKILL,
+          description: "remove skill by name",
+          source: "command",
+          get template() {
+            return PROMPT_REMOVE_SKILL
+          },
+          hints: hints(PROMPT_REMOVE_SKILL),
         }
 
         for (const [name, command] of Object.entries(cfg.command ?? {})) {

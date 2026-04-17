@@ -28,7 +28,7 @@ import { previewSelectedLines } from "@opencode-ai/ui/pierre/selection-bridge"
 import { Button } from "@opencode-ai/ui/button"
 import { showToast } from "@opencode-ai/ui/toast"
 import { checksum } from "@opencode-ai/util/encode"
-import { useSearchParams } from "@solidjs/router"
+import { useLocation, useSearchParams } from "@solidjs/router"
 import { NewSessionView, SessionHeader } from "@/components/session"
 import { useComments } from "@/context/comments"
 import { getSessionPrefetch, SESSION_PREFETCH_TTL } from "@/context/global-sync/session-prefetch"
@@ -57,6 +57,7 @@ import { SessionSidePanel } from "@/pages/session/session-side-panel"
 import { TerminalPanel } from "@/pages/session/terminal-panel"
 import { useSessionCommands } from "@/pages/session/use-session-commands"
 import { useSessionHashScroll } from "@/pages/session/use-session-hash-scroll"
+import { SkillsView } from "@/pages/session/skills-view"
 import { Identifier } from "@/utils/id"
 import { diffs as list } from "@/utils/diffs"
 import { Persist, persisted } from "@/utils/persist"
@@ -330,8 +331,10 @@ export default function Page() {
   const prompt = usePrompt()
   const comments = useComments()
   const terminal = useTerminal()
+  const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams<{ prompt?: string }>()
   const { params, sessionKey, tabs, view } = useSessionLayout()
+  const skillsMode = createMemo(() => location.pathname.endsWith("/skills"))
 
   createEffect(() => {
     if (!prompt.ready()) return
@@ -1894,14 +1897,18 @@ export default function Page() {
   return (
     <div class="relative bg-background-base size-full overflow-hidden flex flex-col">
       <SessionHeader />
-      <div 
-        class="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden"
-        style={{
-          height: terminalExceedsThreshold() ? "0px" : `calc(100% - ${terminalHeight()}px)`,
-          opacity: terminalExceedsThreshold() ? "0" : "1",
-          "pointer-events": terminalExceedsThreshold() ? "none" : "auto",
-        }}
-      >
+      <Show
+        when={skillsMode()}
+        fallback={
+          <>
+            <div 
+              class="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden"
+              style={{
+                height: terminalExceedsThreshold() ? "0px" : `calc(100% - ${terminalHeight()}px)`,
+                opacity: terminalExceedsThreshold() ? "0" : "1",
+                "pointer-events": terminalExceedsThreshold() ? "none" : "auto",
+              }}
+            >
         <Show when={!isDesktop() && !!params.id}>
           <Tabs value={store.mobileTab} class="h-auto">
             <Tabs.List>
@@ -2069,9 +2076,14 @@ export default function Page() {
           reviewSnap={ui.reviewSnap}
           size={size}
         />
-      </div>
+            </div>
 
-      <TerminalPanel />
+            <TerminalPanel />
+          </>
+        }
+      >
+        <SkillsView />
+      </Show>
     </div>
   )
 }

@@ -204,12 +204,26 @@ export namespace Skill {
         }),
       )
 
+      const refresh = Effect.fn("Skill.refresh")(function* () {
+        const ctx = yield* InstanceState.context
+        yield* InstanceState.useEffect(
+          state,
+          Effect.fnUntraced(function* (s) {
+            s.skills = {}
+            s.dirs.clear()
+            yield* loadSkills(s, config, discovery, bus, fsys, ctx.directory, ctx.worktree)
+          }),
+        )
+      })
+
       const get = Effect.fn("Skill.get")(function* (name: string) {
+        yield* refresh()
         const s = yield* InstanceState.get(state)
         return s.skills[name]
       })
 
       const all = Effect.fn("Skill.all")(function* () {
+        yield* refresh()
         const s = yield* InstanceState.get(state)
         return Object.values(s.skills)
       })
@@ -220,6 +234,7 @@ export namespace Skill {
       })
 
       const available = Effect.fn("Skill.available")(function* (agent?: Agent.Info) {
+        yield* refresh()
         const s = yield* InstanceState.get(state)
         const list = Object.values(s.skills).toSorted((a, b) => a.name.localeCompare(b.name))
         if (!agent) return list

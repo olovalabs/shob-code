@@ -412,6 +412,17 @@ export const useSessionCommands = (actions: SessionCommandContext) => {
       disabled: !params.id || visibleUserMessages().length === 0,
       onSelect: fork,
     }),
+    sessionCommand({
+      id: "skill.create",
+      title: "Create skill",
+      description: "Generate custom skill with AI",
+      slash: "create-skills",
+      onSelect: () => {
+        const text = "/create-skills "
+        prompt.set([{ type: "text", content: text, start: 0, end: text.length }], text.length)
+        focusInput()
+      },
+    }),
   ]
 
   const fileCmds = () => [
