@@ -11,6 +11,12 @@
   &.tool-collapsible {
     --tool-content-gap: 8px;
     gap: var(--tool-content-gap);
+
+    > [data-slot="collapsible-trigger"] {
+      min-height: 32px;
+      height: auto;
+      cursor: pointer;
+    }
   }
 
   [data-slot="collapsible-trigger"] {
