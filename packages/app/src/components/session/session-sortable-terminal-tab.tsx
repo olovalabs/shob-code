@@ -133,29 +133,21 @@ export function SortableTerminalTab(props: { terminal: LocalPTY; onClose?: () =>
         onClick={focus}
         onMouseDown={(e) => e.preventDefault()}
         onContextMenu={menu}
-        class="h-full px-3 flex items-center gap-2 min-w-[140px] max-w-[240px] transition-all duration-150 outline-none border-r border-border-weaker-base"
+        class="h-8 px-3 flex items-center gap-2 min-w-[140px] max-w-[200px] transition-all duration-150 outline-none border border-border-weaker-base"
         classList={{
-          "bg-surface-base text-text-base": isActive(),
-          "bg-background-base/30 text-text-weak hover:bg-background-base/50": !isActive(),
+          "bg-surface-base text-text-base rounded-t-lg border-b-0 -mb-[1px] z-10": isActive(),
+          "bg-background-base text-text-weak hover:bg-background-stronger rounded-t-lg border-b-0 -mb-[1px] opacity-70 hover:opacity-100": !isActive(),
         }}
       >
         {/* Terminal icon */}
-        <div
-          class="flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center"
+        <Icon 
+          name="terminal" 
+          class="w-4 h-4 flex-shrink-0"
           classList={{
-            "bg-green-500/20": isActive(),
-            "bg-purple-500/20": !isActive(),
+            "text-green-500": isActive(),
+            "text-text-weak": !isActive(),
           }}
-        >
-          <Icon 
-            name="terminal" 
-            class="w-3 h-3"
-            classList={{
-              "text-green-500": isActive(),
-              "text-purple-500": !isActive(),
-            }}
-          />
-        </div>
+        />
 
         <Show when={!store.editing}>
           <span
@@ -184,9 +176,13 @@ export function SortableTerminalTab(props: { terminal: LocalPTY; onClose?: () =>
           <button
             type="button"
             onClick={close}
-            class="flex-shrink-0 w-4 h-4 flex items-center justify-center rounded hover:bg-background-stronger transition-colors"
+            class="flex-shrink-0 w-5 h-5 flex items-center justify-center rounded-full hover:bg-background-stronger/80 transition-colors group/close"
+            classList={{
+              "opacity-100": isActive(),
+              "opacity-0 group-hover:opacity-100 hover:opacity-100": !isActive(),
+            }}
           >
-            <Icon name="close" class="w-3 h-3" />
+            <Icon name="close" class="w-3 h-3 text-text-weak hover:text-text-base" />
           </button>
         </Show>
       </button>

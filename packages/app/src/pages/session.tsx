@@ -2108,9 +2108,9 @@ export default function Page() {
           reviewSnap={ui.reviewSnap}
           size={size}
         />
-
-        <TerminalPanel />
       </div>
+
+      <TerminalPanel />
     </Show>
     </div>
   )
