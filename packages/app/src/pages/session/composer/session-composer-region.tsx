@@ -200,23 +200,28 @@ export function SessionComposerRegion(props: {
             }
           >
             <Show when={dock()}>
-              <div
-                classList={{
-                  "overflow-hidden": true,
-                  "pointer-events-none": value() < 0.98,
-                }}
-                style={{
-                  "max-height": `${full() * value()}px`,
-                }}
-              >
-                <div ref={(el) => setStore("body", el)}>
-                  <SessionTodoDock
-                    sessionID={route.params.id}
-                    todos={props.state.todos()}
-                    collapseLabel={language.t("session.todo.collapse")}
-                    expandLabel={language.t("session.todo.expand")}
-                    dockProgress={value()}
-                  />
+              <div class="relative">
+                <div class="absolute -top-10 left-3 pointer-events-none z-50">
+                  <TurnTimer sessionID={route.params.id} />
+                </div>
+                <div
+                  classList={{
+                    "overflow-hidden": true,
+                    "pointer-events-none": value() < 0.98,
+                  }}
+                  style={{
+                    "max-height": `${full() * value()}px`,
+                  }}
+                >
+                  <div ref={(el) => setStore("body", el)}>
+                    <SessionTodoDock
+                      sessionID={route.params.id}
+                      todos={props.state.todos()}
+                      collapseLabel={language.t("session.todo.collapse")}
+                      expandLabel={language.t("session.todo.expand")}
+                      dockProgress={value()}
+                    />
+                  </div>
                 </div>
               </div>
             </Show>
@@ -252,10 +257,12 @@ export function SessionComposerRegion(props: {
                   onEdit={props.followup!.onEdit}
                 />
               </Show>
-              <div class="relative">
-                <div class="absolute -top-8 left-1 pointer-events-none z-50">
-                  <TurnTimer sessionID={route.params.id} />
-                </div>
+              <div class="relative z-10">
+                <Show when={!dock()}>
+                  <div class="absolute -top-10 left-1 pointer-events-none z-50">
+                    <TurnTimer sessionID={route.params.id} />
+                  </div>
+                </Show>
                 <Show
                   when={child()}
                   fallback={

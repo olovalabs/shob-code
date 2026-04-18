@@ -8,7 +8,7 @@ import { useSpring } from "@opencode-ai/ui/motion-spring"
 import { TextReveal } from "@opencode-ai/ui/text-reveal"
 import { TextStrikethrough } from "@opencode-ai/ui/text-strikethrough"
 import { createResizeObserver } from "@solid-primitives/resize-observer"
-import { Index, createEffect, createMemo, onCleanup } from "solid-js"
+import { Index, createEffect, createMemo, onCleanup, Show } from "solid-js"
 import { createStore } from "solid-js/store"
 import { composerEnabled, composerProbe } from "@/testing/session-composer"
 import { useLanguage } from "@/context/language"
@@ -227,7 +227,7 @@ function TodoList(props: { todos: Todo[] }) {
   return (
     <div class="relative">
       <div
-        class="px-3 pb-3 flex flex-col gap-1 max-h-42 overflow-y-auto no-scrollbar"
+        class="px-3 pb-3 pt-1 flex flex-col gap-2 max-h-56 overflow-y-auto"
         style={{ "overflow-anchor": "none" }}
         onScroll={(e) => {
           setStore("stuck", e.currentTarget.scrollTop > 0)
@@ -242,26 +242,27 @@ function TodoList(props: { todos: Todo[] }) {
               data-in-progress={todo().status === "in_progress" ? "" : undefined}
               data-state={todo().status}
               icon={dot(todo().status)}
+              class="py-1"
               style={{
                 "--checkbox-align": "flex-start",
-                "--checkbox-offset": "1px",
+                "--checkbox-offset": "2px",
                 transition: "opacity 220ms var(--tool-motion-ease, cubic-bezier(0.22, 1, 0.36, 1))",
-                opacity: todo().status === "pending" ? "0.94" : "1",
+                opacity: todo().status === "pending" ? "0.85" : "1",
               }}
             >
               <TextStrikethrough
                 active={todo().status === "completed" || todo().status === "cancelled"}
                 text={todo().content}
-                class="text-13-regular min-w-0 break-words"
+                class="text-13-regular min-w-0 break-words leading-relaxed"
                 style={{
-                  "line-height": "var(--line-height-normal)",
+                  "line-height": "1.5",
                   transition:
                     "color 220ms var(--tool-motion-ease, cubic-bezier(0.22, 1, 0.36, 1)), opacity 220ms var(--tool-motion-ease, cubic-bezier(0.22, 1, 0.36, 1))",
                   color:
                     todo().status === "completed" || todo().status === "cancelled"
                       ? "var(--text-weak)"
                       : "var(--text-strong)",
-                  opacity: todo().status === "pending" ? "0.92" : "1",
+                  opacity: todo().status === "pending" ? "0.9" : "1",
                 }}
               />
             </Checkbox>
@@ -269,7 +270,7 @@ function TodoList(props: { todos: Todo[] }) {
         </Index>
       </div>
       <div
-        class="pointer-events-none absolute top-0 left-0 right-0 h-4 transition-opacity duration-150"
+        class="pointer-events-none absolute top-0 left-0 right-0 h-2 transition-opacity duration-150"
         style={{
           background: "linear-gradient(to bottom, var(--background-base), transparent)",
           opacity: store.stuck ? 1 : 0,

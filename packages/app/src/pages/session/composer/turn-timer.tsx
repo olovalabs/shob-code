@@ -2,6 +2,55 @@ import { createEffect, createMemo, createSignal, For, onCleanup, Show } from "so
 import { Spinner } from "@opencode-ai/ui/spinner"
 import { useSync } from "@/context/sync"
 
+export const tips = [
+  "Good code is like a good joke: it needs no explanation.",
+  "Readability counts more than cleverness.",
+  "The best debugging tool is a clear mind.",
+  "Small functions are easier to test and understand.",
+  "Comments should explain why, not what.",
+  "Keep functions focused on one thing.",
+  "Names matter more than you think.",
+  "Simplicity is the ultimate sophistication.",
+  "Write code for humans, not machines.",
+  "Test your code, not your patience.",
+  "Clean code always looks like it was written by someone who cares.",
+  "Premature optimization is the root of all evil.",
+  "Make it work, make it right, make it fast.",
+  "Your future self will thank you for clear code.",
+  "Consistency is key to maintainable code.",
+  "Delete code, don't comment it out.",
+  "If it's not tested, it's broken.",
+  "Code that is hard to read is hard to maintain.",
+  "The best documentation is the code itself.",
+  "Refactor early, refactor often.",
+]
+
+export const quotes = [
+  "First, solve the problem. Then, write the code. — John Johnson",
+  "Any fool can write code that a computer can understand. Good programmers write code that humans can understand. — Martin Fowler",
+  "Programs must be written for people to read, and only incidentally for machines to execute. — Harold Abelson",
+  "Simplicity is the soul of efficiency. — Austin Freeman",
+  "The only way to go fast is to go well. — Robert C. Martin",
+  "Make it work, make it right, make it fast. — Kent Beck",
+  "Code is like humor. When you have to explain it, it's bad. — Cory House",
+  "Experience is the name everyone gives to their mistakes. — Oscar Wilde",
+  "The best error message is the one that never shows up. — Thomas Fuchs",
+  "Debugging is twice as hard as writing the code in the first place. — Brian Kernighan",
+]
+
+export const facts = [
+  "The first computer bug was an actual bug found in a Harvard Mark II in 1947.",
+  "The first computer programmer was Ada Lovelace in the 1840s.",
+  "JavaScript was created in just 10 days in 1995.",
+  "The first domain name registered was symbolics.com in 1985.",
+  "The first computer mouse was made of wood.",
+  "Python was named after Monty Python, not the snake.",
+  "The first emoji was created in 1999 in Japan.",
+  "The first computer virus was created in 1971.",
+  "The first website is still online at info.cern.ch.",
+  "The term 'bug' in computing predates computers by decades.",
+]
+
 export const jokes = [
   "Debugging is like being the detective in a crime movie where you're also the murderer.",
   "A program isn't done when it works. It's done when it stops working in predictable ways.",
@@ -23,7 +72,7 @@ export const jokes = [
   "The best code is the code you never write. The second best is code simple enough that a junior dev can fix it at 3 AM.",
   "Errors aren't failures. They're just the compiler's way of saying I'm trying to protect you from yourself.",
   "Open source is like a potluck dinner: everyone brings something, someone always brings too much, and somehow it still feeds the world.",
-];
+]
 
 export const keywords = [
   'Accomplishing', 'Actioning', 'Actualizing', 'Architecting', 'Baking', 'Beaming', 'Beboppin', 'Befuddling',
@@ -88,7 +137,7 @@ export function TurnTimer(props: { sessionID?: string }) {
   })
 
   const isBusy = createMemo(() => status().type === "busy")
-  
+
   const lastAssistantMessage = createMemo(() => {
     if (!props.sessionID) return
     const msgs = sync.data.message[props.sessionID] ?? []
@@ -102,13 +151,53 @@ export function TurnTimer(props: { sessionID?: string }) {
   })
 
   const [randomKeyword, setRandomKeyword] = createSignal(keywords[Math.floor(Math.random() * keywords.length)])
-  const [randomJoke, setRandomJoke] = createSignal(jokes[Math.floor(Math.random() * jokes.length)])
+  const [randomMessage, setRandomMessage] = createSignal("")
+  const [messageType, setMessageType] = createSignal<"tip" | "quote" | "fact" | "joke">("tip")
+  const [showMessage, setShowMessage] = createSignal(false)
+
+  const currentTool = createMemo(() => {
+    const parts = activeParts()
+    const tool = parts.filter(p => p.type === "tool" && p.state.status !== "completed").at(-1)
+    if (tool && tool.type === "tool") return tool
+    return undefined
+  })
+
+  const toolNameDisplay = createMemo(() => {
+    const tool = currentTool()
+    if (!tool) return undefined
+
+    const name = tool.tool.toLowerCase()
+    const metadata = tool.metadata || {}
+
+    if (name.includes("search") || name.includes("grep")) {
+      const query = metadata.query as string | undefined || metadata.pattern as string | undefined
+      return query ? `Searching: ${query.slice(0, 30)}...` : "Searching"
+    }
+    if (name.includes("find") || name.includes("ls") || name.includes("glob")) {
+      const pattern = metadata.pattern as string | undefined || metadata.path as string | undefined
+      return pattern ? `Finding: ${pattern.slice(0, 30)}...` : "Finding files"
+    }
+    if (name.includes("read")) {
+      const path = metadata.path as string | undefined || metadata.file_path as string | undefined
+      return path ? `Reading: ${path.slice(0, 40)}...` : "Reading file"
+    }
+    if (name.includes("write") || name.includes("replace") || name.includes("edit") || name.includes("patch")) {
+      const path = metadata.path as string | undefined || metadata.file_path as string | undefined
+      return path ? `Writing: ${path.slice(0, 40)}...` : "Writing file"
+    }
+    if (name.includes("shell") || name.includes("run") || name.includes("cmd") || name.includes("exec")) {
+      const command = metadata.command as string | undefined || metadata.cmd as string | undefined
+      return command ? `Running: ${command.slice(0, 30)}...` : "Running command"
+    }
+
+    return undefined
+  })
 
   const currentActivity = createMemo(() => {
     const parts = activeParts()
-    
-    const tool = parts.filter(p => p.type === "tool" && p.state.status !== "completed").at(-1)
-    if (tool && tool.type === "tool") {
+
+    const tool = currentTool()
+    if (tool) {
       const name = tool.tool.toLowerCase()
       if (name.includes("search") || name.includes("grep") || name.includes("find") || name.includes("ls") || name.includes("glob")) return "Searching"
       if (name.includes("read")) return "Reading"
@@ -119,62 +208,67 @@ export function TurnTimer(props: { sessionID?: string }) {
 
     if (parts.some(p => p.type === "reasoning")) return "Reasoning"
     if (parts.some(p => p.type === "text")) return "Responding"
-    
+
     return randomKeyword()
   })
 
-  const [elapsed, setElapsed] = createSignal(0)
-  
+  const selectMessage = () => {
+    const types = ["tip", "quote", "fact", "joke"] as const
+    const type = types[Math.floor(Math.random() * types.length)]
+    setMessageType(type)
+
+    switch (type) {
+      case "tip":
+        setRandomMessage(tips[Math.floor(Math.random() * tips.length)])
+        break
+      case "quote":
+        setRandomMessage(quotes[Math.floor(Math.random() * quotes.length)])
+        break
+      case "fact":
+        setRandomMessage(facts[Math.floor(Math.random() * facts.length)])
+        break
+      case "joke":
+        setRandomMessage(jokes[Math.floor(Math.random() * jokes.length)])
+        break
+    }
+  }
+
   createEffect(() => {
     if (!isBusy()) {
-      setElapsed(0)
+      setShowMessage(false)
       return
     }
 
-    const msg = lastAssistantMessage()
-    const start = msg?.time.created ?? Date.now()
-    
-    const update = () => {
-      setElapsed(Math.max(0, Date.now() - start))
-    }
-    
-    update()
-    const timer = setInterval(update, 100)
-    
     const keywordTimer = setInterval(() => {
-      setRandomKeyword(keywords[Math.floor(Math.random() * keywords.length)])
+      if (!toolNameDisplay()) {
+        setRandomKeyword(keywords[Math.floor(Math.random() * keywords.length)])
+      }
     }, 4000)
 
-    const jokeTimer = setInterval(() => {
-      setRandomJoke(jokes[Math.floor(Math.random() * jokes.length)])
+    const messageTimer = setInterval(() => {
+      selectMessage()
     }, 12000)
 
+    const messageDelay = setTimeout(() => {
+      selectMessage()
+      setShowMessage(true)
+    }, 8000)
+
     onCleanup(() => {
-      clearInterval(timer)
       clearInterval(keywordTimer)
-      clearInterval(jokeTimer)
+      clearInterval(messageTimer)
+      clearTimeout(messageDelay)
     })
   })
 
-  const format = (ms: number) => {
-    const s = Math.floor(ms / 1000)
-    const m = Math.floor(s / 60)
-    const rs = s % 60
-    return `${m}:${rs.toString().padStart(2, "0")}`
-  }
-
   return (
     <Show when={isBusy()}>
-      <div 
-        class="flex items-center gap-2.5 px-2 py-1 transition-opacity duration-500 pointer-events-none whitespace-nowrap overflow-hidden max-w-[calc(100vw-48px)]"
-        style={{ opacity: isBusy() ? 1 : 0 }}
+      <div
+        class="flex items-center gap-2.5 px-2.5 py-1.5 pointer-events-none whitespace-nowrap overflow-hidden max-w-[calc(100vw-48px)] bg-background-base/80 backdrop-blur-sm rounded-lg border border-border-weak-base"
       >
         <div class="flex items-center gap-2 shrink-0">
-          <Spinner class="size-3 text-icon-info-base" />
-          <span class="text-11-bold italic font-mono text-icon-info-base tabular-nums">
-            {format(elapsed())}
-          </span>
-          <span class="text-11-bold italic text-icon-info-base uppercase tracking-wider flex items-center">
+          <Spinner class="size-3.5 text-icon-info-base" />
+          <span class="text-10-semibold uppercase tracking-widest text-text-strong flex items-center">
             <For each={currentActivity().split("")}>
               {(char, i) => (
                 <span
@@ -188,12 +282,25 @@ export function TurnTimer(props: { sessionID?: string }) {
             <Dots />
           </span>
         </div>
-        
-        <Show when={elapsed() > 8000}>
+
+        <Show when={toolNameDisplay()}>
           <div class="flex items-center gap-2.5 min-w-0">
-            <span class="text-icon-info-base/40 text-11-bold shrink-0">—</span>
-            <span class="text-11-bold italic text-icon-info-base truncate animate-in fade-in slide-in-from-left-4 duration-1000">
-              "{randomJoke()}"
+            <span class="text-text-weak/50 text-10-semibold shrink-0">—</span>
+            <span class="text-10-semibold text-text-base truncate animate-in fade-in slide-in-from-left-4 duration-1000">
+              {toolNameDisplay()}
+            </span>
+          </div>
+        </Show>
+
+        <Show when={!toolNameDisplay() && showMessage()}>
+          <div class="flex items-center gap-2.5 min-w-0">
+            <span class="text-text-weak/50 text-10-semibold shrink-0">—</span>
+            <span class="text-10-semibold text-text-base truncate animate-in fade-in slide-in-from-left-4 duration-1000">
+              {messageType() === "tip" && "💡 "}
+              {messageType() === "quote" && "💭 "}
+              {messageType() === "fact" && "📚 "}
+              {messageType() === "joke" && "😄 "}
+              {randomMessage()}
             </span>
           </div>
         </Show>

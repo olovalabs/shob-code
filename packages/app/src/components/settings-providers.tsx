@@ -11,6 +11,7 @@ import { useGlobalSync } from "@/context/global-sync"
 import { DialogConnectProvider } from "./dialog-connect-provider"
 import { DialogSelectProvider } from "./dialog-select-provider"
 import { DialogCustomProvider } from "./dialog-custom-provider"
+import { DialogOpenAICompatible } from "./dialog-openai-compatible"
 
 type ProviderSource = "env" | "api" | "config" | "custom"
 type ProviderItem = ReturnType<ReturnType<typeof useProviders>["connected"]>[number]
@@ -229,6 +230,31 @@ export const SettingsProviders: Component = () => {
                 />
               )}
             </For>
+
+            {/* OpenAI Compatible API */}
+            <div
+              class="flex items-center justify-between gap-4 py-3 border-b border-border-weak-base last:border-0"
+              data-component="openai-compatible-section"
+            >
+              <div class="flex flex-col min-w-0">
+                <div class="flex items-center gap-x-3">
+                  <ProviderIcon id="openai" class="size-5 shrink-0 icon-strong-base" />
+                  <span class="text-13-medium text-text-strong">{language.t("provider.openaiCompatible.title")}</span>
+                  <Tag>{language.t("settings.providers.tag.custom")}</Tag>
+                </div>
+                <span class="text-12-regular text-text-weak pl-8">
+                  {language.t("provider.openaiCompatible.description")}
+                </span>
+              </div>
+              <Button
+                size="small"
+                variant="secondary"
+                icon="plus-small"
+                onClick={() => dialog.show(() => <DialogOpenAICompatible />)}
+              >
+                {language.t("common.connect")}
+              </Button>
+            </div>
 
             {/* Custom Provider */}
             <div
