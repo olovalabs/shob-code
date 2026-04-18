@@ -27,11 +27,11 @@ const LoadingFallback = () => (
   </div>
 )
 
-export const DialogSettings: Component = () => {
+export const DialogSettings: Component<{ defaultTab?: Tab }> = (props) => {
   const language = useLanguage()
   const platform = usePlatform()
   const dialog = useDialog()
-  const [active, setActive] = createSignal<Tab>("general")
+  const [active, setActive] = createSignal<Tab>(props.defaultTab ?? "general")
 
   return (
     <Dialog size="x-large">

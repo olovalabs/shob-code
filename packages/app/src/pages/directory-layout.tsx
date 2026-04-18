@@ -26,6 +26,8 @@ function DirectoryDataProvider(props: ParentProps<{ directory: string }>) {
   createEffect(() => {
     const id = params.id
     if (!id) return
+    // Only sync if we're on a session route (not settings or other pages)
+    if (!location.pathname.includes("/session/")) return
     void sync.session.sync(id)
   })
 

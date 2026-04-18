@@ -1211,11 +1211,9 @@ export default function Layout(props: ParentProps) {
   }
 
   function openSettings() {
-    const run = ++dialogRun
-    void import("@/components/dialog-settings").then((x) => {
-      if (dialogDead || dialogRun !== run) return
-      dialog.show(() => <x.DialogSettings />)
-    })
+    const dir = route().dir
+    if (!dir) return
+    navigate(`/${base64Encode(dir)}/settings`)
   }
 
   function projectRoot(directory: string) {

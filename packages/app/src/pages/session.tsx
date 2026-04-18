@@ -1896,19 +1896,51 @@ export default function Page() {
 
   return (
     <div class="relative bg-background-base size-full overflow-hidden flex flex-col">
-      <SessionHeader />
+      <Show when={!skillsMode()}>
+        <SessionHeader />
+      </Show>
       <Show
         when={skillsMode()}
-        fallback={
-          <>
-            <div 
-              class="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden"
-              style={{
-                height: terminalExceedsThreshold() ? "0px" : `calc(100% - ${terminalHeight()}px)`,
-                opacity: terminalExceedsThreshold() ? "0" : "1",
-                "pointer-events": terminalExceedsThreshold() ? "none" : "auto",
-              }}
-            >
+      >
+        <SkillsView />
+      </Show>
+      <Show
+        when={!skillsMode()}
+      >
+        <div
+          class="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden"
+          style={{
+            height: terminalExceedsThreshold() ? "0px" : `calc(100% - ${terminalHeight()}px)`,
+            opacity: terminalExceedsThreshold() ? "0" : "1",
+            "pointer-events": terminalExceedsThreshold() ? "none" : "auto",
+          }}
+        >
+        <Show when={!isDesktop() && !!params.id}>
+          <Tabs value={store.mobileTab} class="h-auto">
+            <Tabs.List>
+              <Tabs.Trigger
+                value="session"
+                class="!w-1/2 !max-w-none"
+                classes={{ button: "w-full" }}
+                onClick={() => setStore("mobileTab", "session")}
+              >
+                {language.t("session.tab.session")}
+              </Tabs.Trigger>
+              <Tabs.Trigger
+                value="changes"
+                class="!w-1/2 !max-w-none !border-r-0"
+                classes={{ button: "w-full" }}
+                onClick={() => setStore("mobileTab", "changes")}
+              >
+                {hasReview()
+                  ? language.t("session.review.filesChanged", { count: reviewCount() })
+                  : language.t("session.review.change.other")}
+              </Tabs.Trigger>
+            </Tabs.List>
+          </Tabs>
+        </Show>
+
+        {/* Session panel */}
         <Show when={!isDesktop() && !!params.id}>
           <Tabs value={store.mobileTab} class="h-auto">
             <Tabs.List>
@@ -2076,14 +2108,10 @@ export default function Page() {
           reviewSnap={ui.reviewSnap}
           size={size}
         />
-            </div>
 
-            <TerminalPanel />
-          </>
-        }
-      >
-        <SkillsView />
-      </Show>
+        <TerminalPanel />
+      </div>
+    </Show>
     </div>
   )
 }
