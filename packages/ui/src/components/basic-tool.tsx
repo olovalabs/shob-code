@@ -3,7 +3,8 @@ import { animate, type AnimationPlaybackControls } from "motion"
 import { useI18n } from "../context/i18n"
 import { createStore } from "solid-js/store"
 import { Collapsible } from "./collapsible"
-import type { IconProps } from "./icon"
+import { Icon, type IconProps } from "./icon"
+import { Spinner } from "./spinner"
 import { TextShimmer } from "./text-shimmer"
 
 export type TriggerTitle = {
@@ -129,6 +130,15 @@ export function BasicTool(props: BasicToolProps) {
       data-clickable={props.clickable ? "true" : undefined}
       data-hide-details={props.hideDetails ? "true" : undefined}
     >
+      <Show when={pending()} fallback={
+        <span data-slot="basic-tool-tool-indicator">
+          <Icon name={props.icon} size="small" />
+        </span>
+      }>
+        <span data-slot="basic-tool-tool-spinner">
+          <Spinner />
+        </span>
+      </Show>
       <div data-slot="basic-tool-tool-trigger-content">
         <div data-slot="basic-tool-tool-info">
           <Switch>
