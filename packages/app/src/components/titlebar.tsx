@@ -301,25 +301,7 @@ export function Titlebar() {
         data-tauri-drag-region
         onMouseDown={drag}
       >
-        <div id="opencode-titlebar-right" class="flex items-center gap-1 shrink-0 justify-end">
-          <Show when={params.dir}>
-            <Tooltip placement="bottom" value="Skills">
-              <Button
-                variant="ghost"
-                class="titlebar-icon h-6 px-2 box-border flex items-center gap-2"
-                onClick={() =>
-                  navigate(
-                    params.id ? `/${params.dir}/session/${params.id}/skills` : `/${params.dir}/session/skills`,
-                  )
-                }
-                aria-label="Skills"
-              >
-                <Icon name="brain" size="small" class="text-icon-base" />
-                <span class="text-13-medium text-text-base">Plugin</span>
-              </Button>
-            </Tooltip>
-          </Show>
-        </div>
+        <div id="opencode-titlebar-right" class="flex items-center gap-1 shrink-0 justify-end" />
         <Show when={windows()}>
           {!tauriApi() && <div class="w-36 shrink-0" />}
           <div data-tauri-decorum-tb class="flex flex-row" />

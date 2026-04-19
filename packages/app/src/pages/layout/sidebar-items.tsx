@@ -95,12 +95,19 @@ const SessionRow = (props: {
   warmPress: () => void
   warmFocus: () => void
 }): JSX.Element => {
-  const title = () => sessionTitle(props.session.title)
+  const title = () => {
+    const sessionTitleText = sessionTitle(props.session.title)
+    // Show placeholder title if session is working and has no meaningful title
+    if (props.isWorking() && (!sessionTitleText || sessionTitleText === "New session")) {
+      return "New session"
+    }
+    return sessionTitleText
+  }
 
   return (
     <A
       href={`/${props.slug}/session/${props.session.id}`}
-      class={`flex items-center gap-2 min-w-0 w-full text-left focus:outline-none ${props.dense ? "py-0.5" : "py-1"}`}
+      class="flex items-center justify-between w-full text-left focus:outline-none cursor-pointer text-text-base hover:text-text-strong transition-colors"
       onPointerDown={props.warmPress}
       onFocus={props.warmFocus}
       onClick={() => {
@@ -108,28 +115,30 @@ const SessionRow = (props: {
         props.clearHoverProjectSoon()
       }}
     >
-      <Show when={props.isWorking() || props.hasPermissions() || props.hasError() || props.unseenCount() > 0}>
-        <div
-          class="shrink-0 size-6 flex items-center justify-center"
-          style={{ color: props.tint() ?? "var(--icon-interactive-base)" }}
-        >
-          <Switch>
-            <Match when={props.isWorking()}>
-              <Spinner class="size-[15px]" />
-            </Match>
-            <Match when={props.hasPermissions()}>
-              <div class="size-1.5 rounded-full bg-surface-warning-strong" />
-            </Match>
-            <Match when={props.hasError()}>
-              <div class="size-1.5 rounded-full bg-text-diff-delete-base" />
-            </Match>
-            <Match when={props.unseenCount() > 0}>
-              <div class="size-1.5 rounded-full bg-text-interactive-base" />
-            </Match>
-          </Switch>
-        </div>
-      </Show>
-      <span class="text-14-regular text-text-strong min-w-0 flex-1 truncate">{title()}</span>
+      <div class="flex items-center gap-2 min-w-0 flex-1">
+        <Show when={props.isWorking() || props.hasPermissions() || props.hasError() || props.unseenCount() > 0}>
+          <div
+            class="shrink-0 size-4 flex items-center justify-center"
+            style={{ color: props.tint() ?? "var(--icon-interactive-base)" }}
+          >
+            <Switch>
+              <Match when={props.isWorking()}>
+                <Spinner class="size-[12px]" />
+              </Match>
+              <Match when={props.hasPermissions()}>
+                <div class="size-1.5 rounded-full bg-surface-warning-strong" />
+              </Match>
+              <Match when={props.hasError()}>
+                <div class="size-1.5 rounded-full bg-text-diff-delete-base" />
+              </Match>
+              <Match when={props.unseenCount() > 0}>
+                <div class="size-1.5 rounded-full bg-text-interactive-base" />
+              </Match>
+            </Switch>
+          </div>
+        </Show>
+        <span class="font-medium text-13-regular min-w-0 flex-1 truncate">{title()}</span>
+      </div>
     </A>
   )
 }
@@ -214,54 +223,51 @@ export const SessionItem = (props: SessionItemProps): JSX.Element => {
     <>
       <div
         data-session-id={props.session.id}
-        class="group/session relative w-full min-w-0 rounded-md cursor-default pr-3 transition-colors hover:bg-surface-raised-base-hover [&:has(:focus-visible)]:bg-surface-raised-base-hover has-[[data-expanded]]:bg-surface-raised-base-hover has-[.active]:bg-surface-base-active"
-        style={{ "padding-left": `${8 + (props.level ?? 0) * 16}px` }}
+        class="group/session relative flex items-center justify-between mx-2 pl-[38px] pr-3 py-1.5 rounded-lg cursor-pointer text-text-base hover:bg-surface-raised-base-hover hover:text-text-strong transition-colors"
       >
-        <div class="flex min-w-0 items-center gap-1">
-          <div class="min-w-0 flex-1">
-            <Show
-              when={!tooltip()}
-              fallback={
-                <Tooltip
-                  placement={props.mobile ? "bottom" : "right"}
-                  value={sessionTitle(props.session.title)}
-                  gutter={10}
-                  class="min-w-0 w-full"
-                >
-                  {item}
-                </Tooltip>
-              }
-            >
-              {item}
-            </Show>
-          </div>
-
-          <Show when={!props.level}>
-            <div
-              class="shrink-0 overflow-hidden transition-[width,opacity]"
-              classList={{
-                "w-6 opacity-100 pointer-events-auto": !!props.mobile,
-                "w-0 opacity-0 pointer-events-none": !props.mobile,
-                "group-hover/session:w-6 group-hover/session:opacity-100 group-hover/session:pointer-events-auto": true,
-                "group-focus-within/session:w-6 group-focus-within/session:opacity-100 group-focus-within/session:pointer-events-auto": true,
-              }}
-            >
-              <Tooltip value={language.t("common.archive")} placement="top">
-                <IconButton
-                  icon="archive"
-                  variant="ghost"
-                  class="size-6 rounded-md"
-                  aria-label={language.t("common.archive")}
-                  onClick={(event) => {
-                    event.preventDefault()
-                    event.stopPropagation()
-                    void props.archiveSession(props.session)
-                  }}
-                />
+        <div class="min-w-0 flex-1">
+          <Show
+            when={!tooltip()}
+            fallback={
+              <Tooltip
+                placement={props.mobile ? "bottom" : "right"}
+                value={sessionTitle(props.session.title)}
+                gutter={10}
+                class="min-w-0 w-full"
+              >
+                {item}
               </Tooltip>
-            </div>
+            }
+          >
+            {item}
           </Show>
         </div>
+
+        <Show when={!props.level}>
+          <div
+            class="shrink-0 overflow-hidden transition-[width,opacity]"
+            classList={{
+              "w-6 opacity-100 pointer-events-auto": !!props.mobile,
+              "w-0 opacity-0 pointer-events-none": !props.mobile,
+              "group-hover/session:w-6 group-hover/session:opacity-100 group-hover/session:pointer-events-auto": true,
+              "group-focus-within/session:w-6 group-focus-within/session:opacity-100 group-focus-within/session:pointer-events-auto": true,
+            }}
+          >
+            <Tooltip value={language.t("common.archive")} placement="top">
+              <IconButton
+                icon="archive"
+                variant="ghost"
+                class="size-6 rounded-md hover:bg-surface-hover hover:text-text-strong"
+                aria-label={language.t("common.archive")}
+                onClick={(event) => {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  void props.archiveSession(props.session)
+                }}
+              />
+            </Tooltip>
+          </div>
+        </Show>
       </div>
       <Show when={currentChild()}>
         {(child) => (
@@ -289,21 +295,17 @@ export const NewSessionItem = (props: {
     <A
       href={`/${props.slug}/session`}
       end
-      class={`flex items-center gap-2 min-w-0 w-full text-left focus:outline-none ${props.dense ? "py-0.5" : "py-1"}`}
+      class="flex items-center justify-between mx-2 pl-[38px] pr-3 py-1.5 cursor-pointer text-text-base hover:bg-surface-raised-base-hover hover:text-text-strong rounded-lg transition-colors group text-left"
       onClick={() => {
         if (layout.sidebar.opened()) return
         props.clearHoverProjectSoon()
       }}
     >
-      <div class="shrink-0 size-6 flex items-center justify-center">
-        <Icon name="new-session" size="small" class="text-icon-weak" />
-      </div>
-      <span class="text-14-regular text-text-strong min-w-0 flex-1 truncate">{label}</span>
     </A>
   )
 
   return (
-    <div class="group/session relative w-full min-w-0 rounded-md cursor-default transition-colors pl-2 pr-3 hover:bg-surface-raised-base-hover [&:has(:focus-visible)]:bg-surface-raised-base-hover has-[.active]:bg-surface-base-active">
+    <div class="group/session relative w-full min-w-0">
       <Show
         when={!tooltip()}
         fallback={

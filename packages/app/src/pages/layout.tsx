@@ -176,7 +176,6 @@ export default function Layout(props: ParentProps) {
   const isBusy = (directory: string) => !!state.busyWorkspaces[workspaceKey(directory)]
   const navLeave = { current: undefined as number | undefined }
   const sortNow = () => state.sortNow
-  let sizet: number | undefined
   let sortNowInterval: ReturnType<typeof setInterval> | undefined
   const sortNowTimeout = setTimeout(
     () => {
@@ -202,21 +201,16 @@ export default function Layout(props: ParentProps) {
     if (navLeave.current !== undefined) clearTimeout(navLeave.current)
     clearTimeout(sortNowTimeout)
     if (sortNowInterval) clearInterval(sortNowInterval)
-    if (sizet !== undefined) clearTimeout(sizet)
     if (peekt !== undefined) clearTimeout(peekt)
     aim.reset()
   })
 
   onMount(() => {
-    const stop = () => setState("sizing", false)
     const blur = () => reset()
     const hide = () => {
       if (document.visibilityState !== "hidden") return
       reset()
     }
-    makeEventListener(window, "pointerup", stop)
-    makeEventListener(window, "pointercancel", stop)
-    makeEventListener(window, "blur", stop)
     makeEventListener(window, "blur", blur)
     makeEventListener(document, "visibilitychange", hide)
   })
@@ -1804,13 +1798,17 @@ export default function Layout(props: ParentProps) {
     ),
   )
 
-  createEffect(() => {
-    const sidebarWidth = layout.sidebar.opened() ? layout.sidebar.width() : 48
-    document.documentElement.style.setProperty("--dialog-left-margin", `${sidebarWidth}px`)
-  })
+  const [sidebarWidth, setSidebarWidth] = persisted(
+    Persist.global("layout.sidebarWidth", ["layout.sidebarWidth.v1"]),
+    createStore({ width: 280 }),
+  )
+  const currentSidebarWidth = () => sidebarWidth.width
+  const panelWidth = createMemo(() => Math.max(currentSidebarWidth() - 64, 0))
 
-  const side = createMemo(() => Math.max(layout.sidebar.width(), 244))
-  const panel = createMemo(() => Math.max(side() - 64, 0))
+  createEffect(() => {
+    const currentWidth = layout.sidebar.opened() ? currentSidebarWidth() : 0
+    document.documentElement.style.setProperty("--dialog-left-margin", `${currentWidth}px`)
+  })
 
   const loadedSessionDirs = new Set<string>()
 
@@ -2011,6 +2009,7 @@ export default function Layout(props: ParentProps) {
     workspacesEnabled: (project) => project.vcs === "git" && layout.sidebar.workspaces(project.worktree)(),
     workspaceIds,
     workspaceLabel,
+    clearHoverProjectSoon,
     sessionProps: {
       navList: currentSessions,
       sidebarExpanded,
@@ -2078,7 +2077,7 @@ export default function Layout(props: ParentProps) {
           "max-w-full overflow-hidden": panelProps.mobile,
         }}
         style={{
-          width: panelProps.mobile ? undefined : `${panel()}px`,
+          width: panelProps.mobile ? undefined : `${panelWidth()}px`,
         }}
       >
         <Show
@@ -2346,9 +2345,6 @@ export default function Layout(props: ParentProps) {
       settingsLabel={() => language.t("sidebar.settings")}
       settingsKeybind={() => command.keybind("settings.open")}
       onOpenSettings={openSettings}
-      renderPanel={() =>
-        mobile ? <SidebarPanel project={currentProject} mobile /> : <SidebarPanel project={currentProject} merged />
-      }
     />
   )
 
@@ -2362,11 +2358,11 @@ export default function Layout(props: ParentProps) {
               aria-label={language.t("sidebar.nav.projectsAndSessions")}
               data-component="sidebar-nav-desktop"
               classList={{
-                "hidden xl:block": true,
-                "absolute inset-y-0 left-0": true,
-                "z-10": true,
+                "hidden xl:flex absolute inset-y-0 left-0 z-10 transition-[width] duration-200 ease-in-out overflow-hidden": true,
               }}
-              style={{ width: `${side()}px` }}
+              style={{
+                width: layout.sidebar.opened() ? `${currentSidebarWidth()}px` : "0px",
+              }}
               ref={(el) => {
                 setState("nav", el)
               }}
@@ -2380,34 +2376,22 @@ export default function Layout(props: ParentProps) {
                 arm()
               }}
             >
-              <div class="@container w-full h-full contain-strict">{sidebarContent()}</div>
+              <div class="@container w-full h-full contain-strict flex flex-col">
+                {sidebarContent()}
+                <Show when={layout.sidebar.opened()}>
+                  <ResizeHandle
+                    direction="horizontal"
+                    size={currentSidebarWidth()}
+                    min={200}
+                    max={600}
+                    onResize={(width) => {
+                      setSidebarWidth("width", width)
+                    }}
+                  />
+                </Show>
+              </div>
             </nav>
 
-            <Show when={layout.sidebar.opened()}>
-              <div
-                class="hidden xl:block absolute inset-y-0 z-30 w-0 overflow-visible"
-                style={{ left: `${side()}px` }}
-                onPointerDown={() => setState("sizing", true)}
-              >
-                <ResizeHandle
-                  direction="horizontal"
-                  size={layout.sidebar.width()}
-                  min={244}
-                  max={typeof window === "undefined" ? 1000 : window.innerWidth * 0.3 + 64}
-                  onResize={(w) => {
-                    setState("sizing", true)
-                    if (sizet !== undefined) clearTimeout(sizet)
-                    sizet = window.setTimeout(() => setState("sizing", false), 120)
-                    layout.sidebar.resize(w)
-                  }}
-                />
-              </div>
-            </Show>
-
-            <div
-              class="hidden xl:block pointer-events-none absolute top-0 right-0 z-0 border-t border-border-weaker-base"
-              style={{ left: "calc(4rem + 12px)" }}
-            />
 
             <div class="xl:hidden">
               <div
@@ -2439,11 +2423,10 @@ export default function Layout(props: ParentProps) {
                 "absolute inset-0": true,
                 "xl:inset-y-0 xl:right-0 xl:left-[var(--main-left)]": true,
                 "z-20": true,
-                "transition-[left] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[left] motion-reduce:transition-none":
-                  !state.sizing,
+                "transition-[left] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-[left] motion-reduce:transition-none": true,
               }}
               style={{
-                "--main-left": layout.sidebar.opened() ? `${side()}px` : "4rem",
+                "--main-left": layout.sidebar.opened() ? `${currentSidebarWidth()}px` : "0px",
               }}
             >
               <main
@@ -2457,43 +2440,6 @@ export default function Layout(props: ParentProps) {
               </main>
             </div>
 
-            <div
-              classList={{
-                "hidden xl:flex absolute inset-y-0 left-16 z-30": true,
-                "opacity-100 translate-x-0 pointer-events-auto": state.peeked && !layout.sidebar.opened(),
-                "opacity-0 -translate-x-2 pointer-events-none": !state.peeked || layout.sidebar.opened(),
-                "transition-[opacity,transform] motion-reduce:transition-none": true,
-                "duration-180 ease-out": state.peeked && !layout.sidebar.opened(),
-                "duration-120 ease-in": !state.peeked || layout.sidebar.opened(),
-              }}
-              onMouseMove={disarm}
-              onMouseEnter={() => {
-                disarm()
-                aim.reset()
-              }}
-              onPointerDown={disarm}
-              onMouseLeave={() => {
-                arm()
-              }}
-            >
-              <Show when={peekProject()}>
-                <SidebarPanel project={peekProject} merged={false} />
-              </Show>
-            </div>
-
-            <div
-              classList={{
-                "hidden xl:block pointer-events-none absolute inset-y-0 right-0 z-25 overflow-hidden": true,
-                "opacity-100 translate-x-0": state.peeked && !layout.sidebar.opened(),
-                "opacity-0 -translate-x-2": !state.peeked || layout.sidebar.opened(),
-                "transition-[opacity,transform] motion-reduce:transition-none": true,
-                "duration-180 ease-out": state.peeked && !layout.sidebar.opened(),
-                "duration-120 ease-in": !state.peeked || layout.sidebar.opened(),
-              }}
-              style={{ left: `calc(4rem + ${panel()}px)` }}
-            >
-              <div class="h-full w-px" style={{ "box-shadow": "var(--shadow-sidebar-overlay)" }} />
-            </div>
           </div>
         </div>
         {import.meta.env.DEV && <DebugBar />}
