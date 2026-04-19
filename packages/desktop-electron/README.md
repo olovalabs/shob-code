@@ -1,6 +1,6 @@
-# OpenCode Desktop
+# Shob Desktop
 
-Native OpenCode desktop app, built with Tauri v2.
+Native Shob desktop app, built with Tauri v2.
 
 ## Development
 

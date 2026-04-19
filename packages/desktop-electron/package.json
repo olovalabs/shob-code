@@ -1,13 +1,13 @@
 {
-  "name": "@opencode-ai/desktop-electron",
+  "name": "@shob-ai/desktop-electron",
   "private": true,
   "version": "1.4.3",
   "type": "module",
   "license": "MIT",
-  "homepage": "https://opencode.ai",
+  "homepage": "https://shob.ai",
   "author": {
-    "name": "OpenCode",
-    "email": "hello@opencode.ai"
+    "name": "Shob",
+    "email": "hello@shob.ai"
   },
   "scripts": {
     "typecheck": "tsgo -b",
