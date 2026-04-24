@@ -1,0 +1,64 @@
+.home-container {
+  min-height: 100vh;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-base);
+}
+
+.home-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(circle at 50% -20%, var(--bg-base) 0%, var(--bg-surface) 100%);
+}
+
+.home-blob {
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, var(--icon-active) 0%, transparent 70%);
+  filter: blur(100px);
+  opacity: 0.05;
+  animation: float 15s infinite alternate ease-in-out;
+}
+
+.home-blob-1 {
+  top: -5%;
+  left: -5%;
+  animation-delay: 0s;
+}
+
+.home-blob-2 {
+  bottom: 5%;
+  right: -5%;
+  opacity: 0.03;
+  animation-delay: -5s;
+}
+
+@keyframes float {
+  from { transform: translate(0, 0) scale(1); }
+  to { transform: translate(30px, 20px) scale(1.05); }
+}
+
+.home-glass {
+  background: var(--surface-raised-base);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--border-weak-base);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.home-glass:hover {
+  background: var(--surface-raised-base-hover);
+  border: 1px solid var(--border-base);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px -8px rgba(0, 0, 0, 0.3);
+}
+
+.home-hero-text {
+  background: linear-gradient(135deg, var(--text-strong) 0%, var(--text-weak) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
