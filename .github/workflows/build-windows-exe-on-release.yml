@@ -1,0 +1,94 @@
+name: build-windows-exe-on-release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-exe-${{ github.event.release.id }}
+  cancel-in-progress: false
+
+jobs:
+  build-exe:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Resolve release version
+        id: ver
+        shell: pwsh
+        run: |
+          $tag = "${{ github.event.release.tag_name }}"
+          if ($tag.StartsWith("v")) { $tag = $tag.Substring(1) }
+          "version=$tag" >> $env:GITHUB_OUTPUT
+
+      - name: Prepare desktop electron
+        working-directory: packages/desktop-electron
+        env:
+          OPENCODE_VERSION: ${{ steps.ver.outputs.version }}
+          OPENCODE_CHANNEL: prod
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: bun ./scripts/prepare.ts
+
+      - name: Build desktop electron
+        working-directory: packages/desktop-electron
+        env:
+          OPENCODE_CHANNEL: prod
+        run: bun run build
+
+      - name: Package windows exe
+        working-directory: packages/desktop-electron
+        env:
+          OPENCODE_CHANNEL: prod
+        run: npx electron-builder --win --publish never --config electron-builder.config.ts -c.win.signAndEditExecutable=false
+
+      - name: Collect build assets
+        id: assets
+        shell: pwsh
+        run: |
+          $dist = Join-Path $env:GITHUB_WORKSPACE "packages/desktop-electron/dist"
+          $zip = Join-Path $dist "opencode-electron-win-unpacked.zip"
+
+          if (Test-Path $zip) { Remove-Item $zip -Force }
+          Compress-Archive -Path (Join-Path $dist "win-unpacked\*") -DestinationPath $zip -Force
+
+          $exe = Get-ChildItem $dist -Filter *.exe | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $exe) { throw "No .exe file was generated in $dist" }
+
+          "exe=$($exe.FullName)" >> $env:GITHUB_OUTPUT
+          "zip=$zip" >> $env:GITHUB_OUTPUT
+
+      - name: Upload CI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-exe
+          path: |
+            ${{ steps.assets.outputs.exe }}
+            ${{ steps.assets.outputs.zip }}
+
+      - name: Upload to release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.release.tag_name }}
+          files: |
+            ${{ steps.assets.outputs.exe }}
+            ${{ steps.assets.outputs.zip }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
