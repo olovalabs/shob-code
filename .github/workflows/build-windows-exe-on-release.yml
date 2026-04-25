@@ -11,9 +11,151 @@ concurrency:
   group: release-all-os-${{ github.event.release.id }}
   cancel-in-progress: false
 
+env:
+  OPENCODE_CHANNEL: prod
+
 jobs:
-  build:
-    name: shob build (${{ matrix.label }})
+  build-cli:
+    name: shob build (cli)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Seed required metadata
+        run: |
+          mkdir -p .github
+          if [ ! -f .github/TEAM_MEMBERS ]; then
+            echo "seraprogrammer" > .github/TEAM_MEMBERS
+          fi
+
+      - name: Resolve release version
+        id: ver
+        shell: bash
+        run: |
+          tag="${{ github.event.release.tag_name }}"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and upload CLI release assets
+        env:
+          OPENCODE_VERSION: ${{ steps.ver.outputs.version }}
+          OPENCODE_RELEASE: "1"
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: ./packages/opencode/script/build.ts
+
+      - name: Upload CLI artifact (unix)
+        uses: actions/upload-artifact@v4
+        with:
+          name: opencode-cli
+          path: |
+            packages/opencode/dist/opencode-darwin*
+            packages/opencode/dist/opencode-linux*
+
+      - name: Upload CLI artifact (windows)
+        uses: actions/upload-artifact@v4
+        with:
+          name: opencode-cli-windows
+          path: packages/opencode/dist/opencode-windows*
+
+  build-desktop:
+    name: shob build (desktop ${{ matrix.label }})
+    needs: build-cli
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: mac-x64
+            os: macos-13
+            target: x86_64-apple-darwin
+            cli_artifact: opencode-cli
+          - label: mac-arm64
+            os: macos-14
+            target: aarch64-apple-darwin
+            cli_artifact: opencode-cli
+          - label: windows-x64
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+            cli_artifact: opencode-cli-windows
+          - label: windows-arm64
+            os: windows-latest
+            target: aarch64-pc-windows-msvc
+            cli_artifact: opencode-cli-windows
+          - label: linux-x64
+            os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            cli_artifact: opencode-cli
+          - label: linux-arm64
+            os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            cli_artifact: opencode-cli
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Resolve release version
+        id: ver
+        shell: bash
+        run: |
+          tag="${{ github.event.release.tag_name }}"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Prepare desktop
+        working-directory: packages/desktop
+        env:
+          OPENCODE_VERSION: ${{ steps.ver.outputs.version }}
+          OPENCODE_CLI_ARTIFACT: ${{ matrix.cli_artifact }}
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: bun ./scripts/prepare.ts
+
+      - name: Build and upload desktop artifacts
+        uses: tauri-apps/tauri-action@v0
+        with:
+          projectPath: packages/desktop
+          args: --target ${{ matrix.target }} --config ./src-tauri/tauri.prod.conf.json --verbose
+          releaseId: ${{ github.event.release.id }}
+          tagName: ${{ github.event.release.tag_name }}
+          releaseDraft: false
+          releaseAssetNamePattern: opencode-desktop-[platform]-[arch][ext]
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+  build-electron:
+    name: shob build (electron ${{ matrix.label }})
+    needs: build-cli
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -89,6 +231,7 @@ jobs:
           OPENCODE_CHANNEL: prod
           GH_TOKEN: ${{ github.token }}
           GITHUB_RUN_ID: ${{ github.run_id }}
+          OPENCODE_CLI_ARTIFACT: ${{ runner.os == 'Windows' && 'opencode-cli-windows' || 'opencode-cli' }}
         run: bun ./scripts/prepare.ts
 
       - name: Build desktop electron
@@ -103,13 +246,6 @@ jobs:
           OPENCODE_CHANNEL: prod
           CSC_IDENTITY_AUTO_DISCOVERY: false
         run: npx electron-builder ${{ matrix.platform }} ${{ matrix.arch }} --publish never --config electron-builder.config.ts ${{ matrix.extra }}
-
-      - name: Upload CI artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: desktop-${{ matrix.label }}
-          path: |
-            packages/desktop-electron/dist/*
 
       - name: Upload to release assets
         uses: softprops/action-gh-release@v2
