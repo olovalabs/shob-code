@@ -27,7 +27,7 @@ const channel = (() => {
 })()
 
 const getBase = (): Configuration => ({
-  artifactName: "shobcode-${os}-${arch}.${ext}",
+  artifactName: "opencode-electron-${os}-${arch}.${ext}",
   directories: {
     output: "dist",
     buildResources: "resources",

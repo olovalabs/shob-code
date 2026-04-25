@@ -1,4 +1,4 @@
-name: build-windows-exe-on-release
+name: build-desktop-all-os-on-release
 
 on:
   release:
@@ -8,13 +8,42 @@ permissions:
   contents: write
 
 concurrency:
-  group: release-exe-${{ github.event.release.id }}
+  group: release-all-os-${{ github.event.release.id }}
   cancel-in-progress: false
 
 jobs:
-  build-exe:
-    name: shob build
-    runs-on: windows-latest
+  build:
+    name: shob build (${{ matrix.label }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - label: windows-x64
+            os: windows-latest
+            platform: --win
+            arch: --x64
+            extra: --config.win.signAndEditExecutable=false
+          - label: windows-arm64
+            os: windows-latest
+            platform: --win
+            arch: --arm64
+            extra: --config.win.signAndEditExecutable=false
+          - label: mac-x64
+            os: macos-13
+            platform: --mac
+            arch: --x64
+            extra: --config.mac.notarize=false --config.dmg.sign=false --config.mac.hardenedRuntime=false
+          - label: mac-arm64
+            os: macos-14
+            platform: --mac
+            arch: --arm64
+            extra: --config.mac.notarize=false --config.dmg.sign=false --config.mac.hardenedRuntime=false
+          - label: linux-x64
+            os: ubuntu-latest
+            platform: --linux
+            arch: --x64
+            extra: ""
 
     steps:
       - name: Checkout
@@ -27,6 +56,12 @@ jobs:
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
+
+      - name: Install linux packaging tools
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm
 
       - name: Install dependencies
         run: bun install
@@ -62,42 +97,33 @@ jobs:
           OPENCODE_CHANNEL: prod
         run: bun run build
 
-      - name: Package windows exe
+      - name: Package desktop electron
         working-directory: packages/desktop-electron
         env:
           OPENCODE_CHANNEL: prod
-        run: npx electron-builder --win --publish never --config electron-builder.config.ts --config.win.signAndEditExecutable=false
-
-      - name: Collect build assets
-        id: assets
-        shell: pwsh
-        run: |
-          $dist = Join-Path $env:GITHUB_WORKSPACE "packages/desktop-electron/dist"
-          $zip = Join-Path $dist "shobcode-win-unpacked.zip"
-
-          if (Test-Path $zip) { Remove-Item $zip -Force }
-          Compress-Archive -Path (Join-Path $dist "win-unpacked\*") -DestinationPath $zip -Force
-
-          $exe = Get-ChildItem $dist -Filter *.exe | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-          if (-not $exe) { throw "No .exe file was generated in $dist" }
-
-          "exe=$($exe.FullName)" >> $env:GITHUB_OUTPUT
-          "zip=$zip" >> $env:GITHUB_OUTPUT
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+        run: npx electron-builder ${{ matrix.platform }} ${{ matrix.arch }} --publish never --config electron-builder.config.ts ${{ matrix.extra }}
 
       - name: Upload CI artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: windows-exe
+          name: desktop-${{ matrix.label }}
           path: |
-            ${{ steps.assets.outputs.exe }}
-            ${{ steps.assets.outputs.zip }}
+            packages/desktop-electron/dist/*
 
       - name: Upload to release assets
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.release.tag_name }}
+          fail_on_unmatched_files: false
           files: |
-            ${{ steps.assets.outputs.exe }}
-            ${{ steps.assets.outputs.zip }}
+            packages/desktop-electron/dist/*.exe
+            packages/desktop-electron/dist/*.zip
+            packages/desktop-electron/dist/*.dmg
+            packages/desktop-electron/dist/*.AppImage
+            packages/desktop-electron/dist/*.deb
+            packages/desktop-electron/dist/*.rpm
+            packages/desktop-electron/dist/latest*.yml
+            packages/desktop-electron/dist/latest*.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
