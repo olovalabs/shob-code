@@ -30,6 +30,9 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
 
+      - name: Install dependencies
+        run: bun install
+
       - name: Seed required metadata
         run: |
           mkdir -p .github
@@ -110,6 +113,9 @@ jobs:
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install
 
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
