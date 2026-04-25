@@ -72,7 +72,7 @@ jobs:
         shell: pwsh
         run: |
           $dist = Join-Path $env:GITHUB_WORKSPACE "packages/desktop-electron/dist"
-          $zip = Join-Path $dist "opencode-electron-win-unpacked.zip"
+          $zip = Join-Path $dist "shobcode-win-unpacked.zip"
 
           if (Test-Path $zip) { Remove-Item $zip -Force }
           Compress-Archive -Path (Join-Path $dist "win-unpacked\*") -DestinationPath $zip -Force
