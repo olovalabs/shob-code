@@ -13,6 +13,7 @@ concurrency:
 
 jobs:
   build-exe:
+    name: shob build
     runs-on: windows-latest
 
     steps:
