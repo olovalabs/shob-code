@@ -5,8 +5,7 @@ import { createServer } from "node:net"
 import { homedir } from "node:os"
 import { join } from "node:path"
 import type { Event } from "electron"
-import { app, BrowserWindow, dialog } from "electron"
-import pkg from "electron-updater"
+import { app, BrowserWindow } from "electron"
 
 import contextMenu from "electron-context-menu"
 contextMenu({ showSaveImageAs: true, showLookUpSelection: false, showSearchWithGoogle: false })
@@ -25,7 +24,6 @@ const APP_IDS: Record<string, string> = {
 }
 app.setName(app.isPackaged ? APP_NAMES[CHANNEL] : "OpenCode Dev")
 app.setPath("userData", join(app.getPath("appData"), app.isPackaged ? APP_IDS[CHANNEL] : "ai.opencode.desktop.dev"))
-const { autoUpdater } = pkg
 
 import type { InitStep, ServerReadyData, SqliteMigrationProgress, WslConfig } from "../preload/types"
 import { checkAppExists, resolveAppPath, wslPath } from "./apps"
@@ -100,7 +98,6 @@ function setupApp() {
   void app.whenReady().then(async () => {
     app.setAsDefaultProtocolClient("opencode")
     setDockIcon()
-    setupAutoUpdater()
     await initialize()
   })
 }
@@ -198,9 +195,6 @@ function wireMenu() {
   if (!mainWindow) return
   createMenu({
     trigger: (id) => mainWindow && sendMenuCommand(mainWindow, id),
-    checkForUpdates: () => {
-      void checkForUpdates(true)
-    },
     reload: () => mainWindow?.reload(),
     relaunch: () => {
       killSidecar()
@@ -236,9 +230,9 @@ registerIpcHandlers({
   wslPath: async (path, mode) => wslPath(path, mode),
   resolveAppPath: async (appName) => resolveAppPath(appName),
   loadingWindowComplete: () => loadingComplete.resolve(),
-  runUpdater: async (alertOnFail) => checkForUpdates(alertOnFail),
-  checkUpdate: async () => checkUpdate(),
-  installUpdate: async () => installUpdate(),
+  runUpdater: async () => undefined,
+  checkUpdate: async () => ({ updateAvailable: false }),
+  installUpdate: async () => undefined,
   setBackgroundColor: (color) => setBackgroundColor(color),
 })
 
@@ -295,109 +289,6 @@ function sqliteFileExists() {
   const xdg = process.env.XDG_DATA_HOME
   const base = xdg && xdg.length > 0 ? xdg : join(homedir(), ".local", "share")
   return existsSync(join(base, "opencode", "opencode.db"))
-}
-
-function setupAutoUpdater() {
-  if (!UPDATER_ENABLED) return
-  autoUpdater.logger = logger
-  autoUpdater.channel = "latest"
-  autoUpdater.allowPrerelease = false
-  autoUpdater.allowDowngrade = true
-  autoUpdater.autoDownload = false
-  autoUpdater.autoInstallOnAppQuit = true
-  logger.log("auto updater configured", {
-    channel: autoUpdater.channel,
-    allowPrerelease: autoUpdater.allowPrerelease,
-    allowDowngrade: autoUpdater.allowDowngrade,
-    currentVersion: app.getVersion(),
-  })
-}
-
-let updateReady = false
-
-async function checkUpdate() {
-  if (!UPDATER_ENABLED) return { updateAvailable: false }
-  updateReady = false
-  logger.log("checking for updates", {
-    currentVersion: app.getVersion(),
-    channel: autoUpdater.channel,
-    allowPrerelease: autoUpdater.allowPrerelease,
-    allowDowngrade: autoUpdater.allowDowngrade,
-  })
-  try {
-    const result = await autoUpdater.checkForUpdates()
-    const updateInfo = result?.updateInfo
-    logger.log("update metadata fetched", {
-      releaseVersion: updateInfo?.version ?? null,
-      releaseDate: updateInfo?.releaseDate ?? null,
-      releaseName: updateInfo?.releaseName ?? null,
-      files: updateInfo?.files?.map((file) => file.url) ?? [],
-    })
-    const version = result?.updateInfo?.version
-    if (result?.isUpdateAvailable === false || !version) {
-      logger.log("no update available", {
-        reason: "provider returned no newer version",
-      })
-      return { updateAvailable: false }
-    }
-    logger.log("update available", { version })
-    await autoUpdater.downloadUpdate()
-    logger.log("update download completed", { version })
-    updateReady = true
-    return { updateAvailable: true, version }
-  } catch (error) {
-    logger.error("update check failed", error)
-    return { updateAvailable: false, failed: true }
-  }
-}
-
-async function installUpdate() {
-  if (!updateReady) return
-  killSidecar()
-  autoUpdater.quitAndInstall()
-}
-
-async function checkForUpdates(alertOnFail: boolean) {
-  if (!UPDATER_ENABLED) return
-  logger.log("checkForUpdates invoked", { alertOnFail })
-  const result = await checkUpdate()
-  if (!result.updateAvailable) {
-    if (result.failed) {
-      logger.log("no update decision", { reason: "update check failed" })
-      if (!alertOnFail) return
-      await dialog.showMessageBox({
-        type: "error",
-        message: "Update check failed.",
-        title: "Update Error",
-      })
-      return
-    }
-
-    logger.log("no update decision", { reason: "already up to date" })
-    if (!alertOnFail) return
-    await dialog.showMessageBox({
-      type: "info",
-      message: "You're up to date.",
-      title: "No Updates",
-    })
-    return
-  }
-
-  const response = await dialog.showMessageBox({
-    type: "info",
-    message: `Update ${result.version ?? ""} downloaded. Restart now?`,
-    title: "Update Ready",
-    buttons: ["Restart", "Later"],
-    defaultId: 0,
-    cancelId: 1,
-  })
-  logger.log("update prompt response", {
-    version: result.version ?? null,
-    restartNow: response.response === 0,
-  })
-  if (response.response === 0) {
-    await installUpdate()
-  }
 }
 
 function delay(ms: number) {
