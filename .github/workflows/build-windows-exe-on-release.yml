@@ -65,7 +65,7 @@ jobs:
         working-directory: packages/desktop-electron
         env:
           OPENCODE_CHANNEL: prod
-        run: npx electron-builder --win --publish never --config electron-builder.config.ts -c.win.signAndEditExecutable=false
+        run: npx electron-builder --win --publish never --config electron-builder.config.ts --config.win.signAndEditExecutable=false
 
       - name: Collect build assets
         id: assets
