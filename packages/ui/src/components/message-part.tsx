@@ -36,6 +36,7 @@ import { useDialog } from "../context/dialog"
 import { type UiI18n, useI18n } from "../context/i18n"
 import { BasicTool, GenericTool } from "./basic-tool"
 import { Accordion } from "./accordion"
+import { Collapsible } from "./collapsible"
 import { StickyAccordionHeader } from "./sticky-accordion-header"
 import { Card } from "./card"
 import { FileIcon } from "./file-icon"
@@ -466,6 +467,7 @@ function taskSession(
 
 const CONTEXT_GROUP_TOOLS = new Set(["read", "glob", "grep", "list", "bash", "edit", "write", "apply_patch", "webfetch", "websearch", "codesearch", "task", "question", "skill"])
 const HIDDEN_TOOLS = new Set(["todowrite"])
+const EXEC_GROUP_TOOLS = new Set(["bash", "edit", "write", "apply_patch", "task", "question", "skill"])
 
 function list<T>(value: T[] | undefined | null, fallback: T[]) {
   if (Array.isArray(value)) return value
@@ -518,6 +520,35 @@ function sameGroups(a: readonly PartGroup[] | undefined, b: readonly PartGroup[]
   if (!a || !b) return false
   if (a.length !== b.length) return false
   return a.every((item, i) => sameGroup(item, b[i]!))
+}
+
+type ContextGroup = {
+  key: string
+  title: string
+  refs: PartRef[]
+}
+
+function contextGroups(refs: PartRef[], get: (ref: PartRef) => PartType | undefined) {
+  const analysis: PartRef[] = []
+  const execution: PartRef[] = []
+
+  refs.forEach((ref) => {
+    const part = get(ref)
+    if (part?.type !== "tool") {
+      analysis.push(ref)
+      return
+    }
+    if (EXEC_GROUP_TOOLS.has(part.tool)) {
+      execution.push(ref)
+      return
+    }
+    analysis.push(ref)
+  })
+
+  const out: ContextGroup[] = []
+  if (analysis.length > 0) out.push({ key: "analysis", title: "Analysis", refs: analysis })
+  if (execution.length > 0) out.push({ key: "execution", title: "Execution", refs: execution })
+  return out
 }
 
 function groupParts(parts: { messageID: string; part: PartType }[]) {
@@ -638,32 +669,58 @@ export function AssistantParts(props: {
                   if (entry.type !== "context") return [] as PartRef[]
                   return entry.refs
                 })
+                const groups = createMemo(() =>
+                  contextGroups(refs(), (ref) => part().get(ref.messageID)?.get(ref.partID)),
+                )
 
                 return (
-                  <Show when={refs().length > 0}>
-                    <div data-component="context-tool-batch">
-                      <For each={refs()}>
-                        {(ref) => {
-                          const message = createMemo(() => msgs().get(ref.messageID))
-                          const item = createMemo(() => part().get(ref.messageID)?.get(ref.partID))
-                          return (
-                            <Show when={message() && item() && isContextGroupTool(item()!)}>
-                              <Part
-                                part={item()!}
-                                message={message()!}
-                                showAssistantCopyPartID={props.showAssistantCopyPartID}
-                                turnDurationMs={props.turnDurationMs}
-                                defaultOpen={partDefaultOpen(
-                                  item()!,
-                                  props.shellToolDefaultOpen,
-                                  props.editToolDefaultOpen,
-                                )}
-                              />
-                            </Show>
-                          )
-                        }}
-                      </For>
-                    </div>
+                  <Show when={groups().length > 0}>
+                    <For each={groups()}>
+                      {(group) => {
+                        const [open, setOpen] = createSignal(true)
+                        return (
+                          <Collapsible
+                            data-component="context-tool-group"
+                            data-group={group.key}
+                            open={open()}
+                            onOpenChange={(value: boolean) => setOpen(value)}
+                          >
+                            <Collapsible.Trigger>
+                              <div data-slot="context-tool-group-trigger">
+                                <Collapsible.Arrow />
+                                <span data-slot="context-tool-group-title">{group.title}</span>
+                                <span data-slot="context-tool-group-count">{group.refs.length}</span>
+                              </div>
+                            </Collapsible.Trigger>
+                            <Collapsible.Content>
+                              <div data-component="context-tool-batch">
+                                <For each={group.refs}>
+                                  {(ref) => {
+                                    const message = createMemo(() => msgs().get(ref.messageID))
+                                    const item = createMemo(() => part().get(ref.messageID)?.get(ref.partID))
+                                    return (
+                                      <Show when={message() && item() && isContextGroupTool(item()!)}>
+                                        <Part
+                                          part={item()!}
+                                          message={message()!}
+                                          showAssistantCopyPartID={props.showAssistantCopyPartID}
+                                          turnDurationMs={props.turnDurationMs}
+                                          defaultOpen={partDefaultOpen(
+                                            item()!,
+                                            props.shellToolDefaultOpen,
+                                            props.editToolDefaultOpen,
+                                          )}
+                                        />
+                                      </Show>
+                                    )
+                                  }}
+                                </For>
+                              </div>
+                            </Collapsible.Content>
+                          </Collapsible>
+                        )
+                      }}
+                    </For>
                   </Show>
                 )
               })()}
@@ -794,25 +851,49 @@ export function AssistantMessageDisplay(props: {
                   if (entry.type !== "context") return [] as PartRef[]
                   return entry.refs
                 })
+                const groups = createMemo(() => contextGroups(refs(), (ref) => part().get(ref.partID)))
 
                 return (
-                  <Show when={refs().length > 0}>
-                    <div data-component="context-tool-batch">
-                      <For each={refs()}>
-                        {(ref) => {
-                          const item = createMemo(() => part().get(ref.partID))
-                          return (
-                            <Show when={item() && isContextGroupTool(item()!)}>
-                              <Part
-                                part={item()!}
-                                message={props.message}
-                                showAssistantCopyPartID={props.showAssistantCopyPartID}
-                              />
-                            </Show>
-                          )
-                        }}
-                      </For>
-                    </div>
+                  <Show when={groups().length > 0}>
+                    <For each={groups()}>
+                      {(group) => {
+                        const [open, setOpen] = createSignal(true)
+                        return (
+                          <Collapsible
+                            data-component="context-tool-group"
+                            data-group={group.key}
+                            open={open()}
+                            onOpenChange={(value: boolean) => setOpen(value)}
+                          >
+                            <Collapsible.Trigger>
+                              <div data-slot="context-tool-group-trigger">
+                                <Collapsible.Arrow />
+                                <span data-slot="context-tool-group-title">{group.title}</span>
+                                <span data-slot="context-tool-group-count">{group.refs.length}</span>
+                              </div>
+                            </Collapsible.Trigger>
+                            <Collapsible.Content>
+                              <div data-component="context-tool-batch">
+                                <For each={group.refs}>
+                                  {(ref) => {
+                                    const item = createMemo(() => part().get(ref.partID))
+                                    return (
+                                      <Show when={item() && isContextGroupTool(item()!)}>
+                                        <Part
+                                          part={item()!}
+                                          message={props.message}
+                                          showAssistantCopyPartID={props.showAssistantCopyPartID}
+                                        />
+                                      </Show>
+                                    )
+                                  }}
+                                </For>
+                              </div>
+                            </Collapsible.Content>
+                          </Collapsible>
+                        )
+                      }}
+                    </For>
                   </Show>
                 )
               })()}
@@ -1184,7 +1265,11 @@ PART_MAPPING["tool"] = function ToolPartDisplay(props) {
 
   return (
     <Show when={!hideQuestion()}>
-      <div data-component="tool-part-wrapper">
+      <div
+        data-component="tool-part-wrapper"
+        data-tool={part().tool}
+        data-status={part().state.status ?? "completed"}
+      >
         <Switch>
           <Match when={part().state.status === "error" && (part().state as any).error}>
             {(error) => {

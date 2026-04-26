@@ -46,9 +46,11 @@ export function BasicTool(props: BasicToolProps) {
   const [state, setState] = createStore({
     open: props.defaultOpen ?? false,
     ready: props.defaultOpen ?? false,
+    seen: false,
   })
   const open = () => state.open
   const ready = () => state.ready
+  const seen = () => state.seen
   const pending = () => props.status === "pending" || props.status === "running"
 
   let frame: number | undefined
@@ -64,6 +66,24 @@ export function BasicTool(props: BasicToolProps) {
   createEffect(() => {
     if (props.forceOpen) setState("open", true)
   })
+
+  createEffect(
+    on(
+      pending,
+      (active, previous) => {
+        if (active) {
+          if (!seen()) setState("seen", true)
+          if (!open()) setState("open", true)
+          return
+        }
+
+        if (!seen() && !previous) return
+        if (props.forceOpen || props.locked) return
+        if (open()) setState("open", false)
+      },
+      { defer: true },
+    ),
+  )
 
   createEffect(
     on(
@@ -127,6 +147,7 @@ export function BasicTool(props: BasicToolProps) {
   const trigger = () => (
     <div
       data-component="tool-trigger"
+      data-status={props.status ?? "completed"}
       data-clickable={props.clickable ? "true" : undefined}
       data-hide-details={props.hideDetails ? "true" : undefined}
     >
@@ -205,7 +226,12 @@ export function BasicTool(props: BasicToolProps) {
   )
 
   return (
-    <Collapsible open={open()} onOpenChange={handleOpenChange} class="tool-collapsible">
+    <Collapsible
+      open={open()}
+      onOpenChange={handleOpenChange}
+      class="tool-collapsible"
+      data-status={props.status ?? "completed"}
+    >
       <Show
         when={props.triggerHref}
         fallback={
