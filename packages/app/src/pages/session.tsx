@@ -57,6 +57,7 @@ import { SessionSidePanel } from "@/pages/session/session-side-panel"
 import { TerminalPanel } from "@/pages/session/terminal-panel"
 import { useSessionCommands } from "@/pages/session/use-session-commands"
 import { useSessionHashScroll } from "@/pages/session/use-session-hash-scroll"
+import { SettingsView } from "@/pages/session/settings-view"
 import { SkillsView } from "@/pages/session/skills-view"
 import { Identifier } from "@/utils/id"
 import { diffs as list } from "@/utils/diffs"
@@ -334,7 +335,11 @@ export default function Page() {
   const location = useLocation()
   const [searchParams, setSearchParams] = useSearchParams<{ prompt?: string }>()
   const { params, sessionKey, tabs, view } = useSessionLayout()
-  const skillsMode = createMemo(() => location.pathname.endsWith("/skills"))
+  const mode = createMemo(() => {
+    if (location.pathname.endsWith("/skills")) return "skills"
+    if (location.pathname.endsWith("/settings")) return "settings"
+    return "session"
+  })
 
   createEffect(() => {
     if (!prompt.ready()) return
@@ -1896,17 +1901,14 @@ export default function Page() {
 
   return (
     <div class="relative bg-background-base size-full overflow-hidden flex flex-col">
-      <Show when={!skillsMode()}>
-        <SessionHeader />
-      </Show>
-      <Show
-        when={skillsMode()}
-      >
+      <SessionHeader />
+      <Show when={mode() === "skills"}>
         <SkillsView />
       </Show>
-      <Show
-        when={!skillsMode()}
-      >
+      <Show when={mode() === "settings"}>
+        <SettingsView />
+      </Show>
+      <Show when={mode() === "session"}>
         <div
           class="flex-1 min-h-0 flex flex-col md:flex-row overflow-hidden"
           style={{

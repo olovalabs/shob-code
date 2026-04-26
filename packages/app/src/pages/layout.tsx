@@ -1207,6 +1207,11 @@ export default function Layout(props: ParentProps) {
   function openSettings() {
     const dir = route().dir
     if (!dir) return
+    const id = params.id ?? currentSessions().at(0)?.id
+    if (id) {
+      navigate(`/${base64Encode(dir)}/session/${id}/settings`)
+      return
+    }
     navigate(`/${base64Encode(dir)}/settings`)
   }
 
