@@ -814,6 +814,13 @@ export namespace Provider {
               "X-Title": "opencode",
             },
           },
+          async getModel(sdk: any, modelID: string) {
+            const id = String(modelID).trim()
+            if (typeof sdk.responses === "function") {
+              return sdk.responses(id)
+            }
+            throw new Error(`Kilo model ${id} requires responses API, but responses() is unavailable`)
+          },
         }),
     }
   }
@@ -1273,6 +1280,54 @@ export namespace Provider {
             })
           }
 
+          const kilo = ProviderID.make("kilo")
+          const router = ProviderID.openrouter
+          const extra = [
+            "kilo-auto/free",
+            "x-ai/grok-code-fast-1:optimized:free",
+            "nvidia/nemotron-3-super-120b-a12b:free",
+            "inclusionai/ling-2.6-1t:free",
+            "inclusionai/ling-2.6-flash:free",
+            "tencent/hy3-preview:free",
+          ]
+          if (providers[kilo]) {
+            const base = Object.values(providers[kilo].models)[0]
+            for (const id of extra) {
+              const existing = providers[kilo].models[id]
+              if (existing) {
+                providers[kilo].models[id] = {
+                  ...existing,
+                  id: ModelID.make(id),
+                  providerID: kilo,
+                  api: {
+                    ...existing.api,
+                    id,
+                    npm: "@ai-sdk/github-copilot",
+                  },
+                }
+                continue
+              }
+              const src = providers[router]?.models[id]
+              const tpl = src ?? base
+              if (!tpl) continue
+              providers[kilo].models[id] = {
+                ...tpl,
+                id: ModelID.make(id),
+                providerID: kilo,
+                name: src?.name ?? id,
+                api: {
+                  ...tpl.api,
+                  id,
+                  url: base?.api.url ?? tpl.api.url,
+                  npm: "@ai-sdk/github-copilot",
+                },
+              }
+            }
+            for (const item of Object.values(providers[kilo].models)) {
+              item.api.npm = "@ai-sdk/github-copilot"
+            }
+          }
+
           for (const hook of plugins) {
             const p = hook.provider
             const models = p?.models
@@ -1534,14 +1589,27 @@ export namespace Provider {
 
           const provider = s.providers[model.providerID]
           const sdk = await resolveSDK(model, s)
+          const responsesOnly = [
+            "kilo-auto/free",
+            "x-ai/grok-code-fast-1:optimized:free",
+            "nvidia/nemotron-3-super-120b-a12b:free",
+            "inclusionai/ling-2.6-1t:free",
+            "inclusionai/ling-2.6-flash:free",
+            "tencent/hy3-preview:free",
+          ]
 
           try {
-            const language = s.modelLoaders[model.providerID]
-              ? await s.modelLoaders[model.providerID](sdk, model.api.id, {
-                  ...provider.options,
-                  ...model.options,
-                })
-              : sdk.languageModel(model.api.id)
+            const language =
+              model.providerID === ProviderID.make("kilo") && typeof (sdk as any).responses === "function"
+                ? (sdk as any).responses(model.api.id)
+                : responsesOnly.includes(model.api.id) && typeof (sdk as any).responses === "function"
+                ? (sdk as any).responses(model.api.id)
+                : s.modelLoaders[model.providerID]
+                  ? await s.modelLoaders[model.providerID](sdk, model.api.id, {
+                      ...provider.options,
+                      ...model.options,
+                    })
+                  : sdk.languageModel(model.api.id)
             s.models.set(key, language)
             return language
           } catch (e) {

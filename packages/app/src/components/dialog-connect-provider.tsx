@@ -45,25 +45,30 @@ export function DialogConnectProvider(props: { provider: string }) {
       providers.all().find((x) => x.id === props.provider) ??
       globalSync.data.provider.all.find((x) => x.id === props.provider)!,
   )
+  const kilo = createMemo(() => props.provider === "kilo")
   const fallback = createMemo<ProviderAuthMethod[]>(() => [
     {
       type: "api" as const,
       label: language.t("provider.connect.method.apiKey"),
     },
   ])
-  const [auth] = createResource(
+  const [auth, { refetch }] = createResource(
     () => props.provider,
     async () => {
-      const cached = globalSync.data.provider_auth[props.provider]
-      if (cached) return cached
+      if (!kilo()) {
+        const cached = globalSync.data.provider_auth[props.provider]
+        if (cached) return cached
+      }
       const res = await globalSDK.client.provider.auth()
-      if (!alive.value) return fallback()
+      if (!alive.value) return kilo() ? [] : fallback()
       globalSync.set("provider_auth", res.data ?? {})
-      return res.data?.[props.provider] ?? fallback()
+      return res.data?.[props.provider] ?? (kilo() ? [] : fallback())
     },
   )
-  const loading = createMemo(() => auth.loading && !globalSync.data.provider_auth[props.provider])
-  const methods = createMemo(() => auth.latest ?? globalSync.data.provider_auth[props.provider] ?? fallback())
+  const loading = createMemo(() => auth.loading && (!kilo() ? !globalSync.data.provider_auth[props.provider] : true))
+  const methods = createMemo(() =>
+    auth.latest ?? (!kilo() ? globalSync.data.provider_auth[props.provider] : undefined) ?? (kilo() ? [] : fallback()),
+  )
   const [store, setStore] = createStore({
     methodIndex: undefined as undefined | number,
     authorization: undefined as undefined | ProviderAuthAuthorization,
@@ -611,7 +616,19 @@ export function DialogConnectProvider(props: { provider: string }) {
                 </div>
               </Match>
               <Match when={store.methodIndex === undefined}>
-                <MethodSelection />
+                <Switch>
+                  <Match when={methods().length === 0}>
+                    <div class="text-14-regular text-text-base flex flex-col items-start gap-4">
+                      <div>{language.t("provider.connect.status.failed", { error: language.t("common.requestFailed") })}</div>
+                      <Button class="w-auto" size="large" variant="secondary" onClick={() => refetch()}>
+                        {language.t("common.retry")}
+                      </Button>
+                    </div>
+                  </Match>
+                  <Match when={true}>
+                    <MethodSelection />
+                  </Match>
+                </Switch>
               </Match>
               <Match when={store.state === "pending"}>
                 <div class="text-14-regular text-text-base">
