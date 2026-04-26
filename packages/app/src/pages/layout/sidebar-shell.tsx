@@ -143,14 +143,14 @@ export const SidebarContent = (props: {
           <For each={[tab()]}>
             {(value) => (
               <>
-                <div class="flex items-center justify-between px-4 py-2 mb-1">
+                <div class="sticky top-0 z-10 flex items-center justify-between px-4 py-2.5 mb-1 border-b border-border-weaker-base bg-background-base/95 backdrop-blur-sm">
                   <span class="text-18-medium text-text-strong">
                     {value === "explorer" ? "Explorer" : value === "search" ? "Search" : "Plugins"}
                   </span>
                   <div class="flex items-center gap-3 text-text-weaker">
                     <Button
                       variant="ghost"
-                      class="size-5 hover:text-text-base p-0 flex items-center justify-center cursor-pointer"
+                      class="size-6 rounded-md hover:text-text-base hover:bg-surface-raised-base-hover p-0 flex items-center justify-center cursor-pointer transition-colors"
                       onClick={() => {
                         if (value === "explorer") props.onOpenProject()
                         if (value === "search") command.show()
@@ -161,10 +161,11 @@ export const SidebarContent = (props: {
                       }}
                     >
                       <Show when={value === "explorer"}>
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <circle cx="2.5" cy="7" r="1.1" fill="currentColor" />
-                          <circle cx="7" cy="7" r="1.1" fill="currentColor" />
-                          <circle cx="11.5" cy="7" r="1.1" fill="currentColor" />
+                        <svg width="14" height="14" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+                          <path
+                            d="m 3 1 c -1.644531 0 -3 1.355469 -3 3 v 8 c 0 1.644531 1.355469 3 3 3 h 3 c 0.550781 0 1 -0.449219 1 -1 s -0.449219 -1 -1 -1 h -3 c -0.5625 0 -1 -0.4375 -1 -1 v -7 h 11 c 0.5625 0 1 0.4375 1 1 v 1 c 0 0.550781 0.449219 1 1 1 s 1 -0.449219 1 -1 v -1 c 0 -1.644531 -1.355469 -3 -3 -3 h -3.585938 l -1.707031 -1.707031 c -0.1875 -0.1875 -0.441406 -0.292969 -0.707031 -0.292969 z m 0 2 h 3.585938 l 1 1 h -5.585938 c 0 -0.5625 0.4375 -1 1 -1 z m 8 5 v 3 h -3 v 2 h 3 v 3 h 2 v -3 h 3 v -2 h -3 v -3 z m 0 0"
+                            fill="currentColor"
+                          />
                         </svg>
                       </Show>
                       <Show when={value === "search"}>

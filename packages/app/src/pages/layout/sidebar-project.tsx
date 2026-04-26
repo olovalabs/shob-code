@@ -236,10 +236,10 @@ export const SortableProject = (props: {
       <Collapsible variant="ghost" open={state.open} class="shrink-0" onOpenChange={(open) => setState("open", open)}>
         <div class="group/project relative">
           <div
-            class="group flex items-center justify-between mx-2 px-2 py-[7px] rounded-lg cursor-pointer transition-colors"
+            class="group flex items-center justify-between mx-2 px-2 py-2 rounded-lg cursor-pointer transition-[background-color,color,box-shadow] duration-150"
             classList={{
               "bg-surface-raised-base text-text-strong": selected(),
-              "text-text-base hover:bg-surface-raised-base-hover": !selected(),
+              "text-text-base hover:bg-surface-raised-base-hover hover:text-text-strong": !selected(),
             }}
             onClick={() => setState("open", !state.open)}
           >
@@ -247,12 +247,28 @@ export const SortableProject = (props: {
               <Icon name="folder" size="small" class="text-text-weaker" />
               <span class="font-medium text-13-regular truncate">{displayName(props.project)}</span>
             </div>
-            
-            {/* Action Icons (Visible on hover only) */}
+
             <div classList={{
-              "flex items-center gap-0.5 text-text-weaker": true,
-              "opacity-0 group-hover:opacity-100": true,
+              "flex items-center gap-0.5 text-text-weaker transition-opacity": true,
+              "opacity-100": selected() || state.open || state.menu,
+              "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100": !selected() && !state.open && !state.menu,
             }}>
+              <button
+                type="button"
+                aria-label={state.open ? "Collapse project" : "Expand project"}
+                class="size-6 rounded-md flex items-center justify-center hover:text-text-strong hover:bg-surface-hover transition-colors"
+                onClick={(event: MouseEvent) => {
+                  event.stopPropagation()
+                  setState("open", !state.open)
+                }}
+              >
+                <Icon
+                  name="chevron-right"
+                  size="small"
+                  class="transition-transform duration-150"
+                  classList={{ "rotate-90": state.open }}
+                />
+              </button>
               <DropdownMenu>
                 <DropdownMenu.Trigger as={IconButton} icon="dot-grid" variant="ghost" size="small" class="size-6 hover:text-text-strong rounded-md hover:bg-surface-hover cursor-pointer" />
                 <DropdownMenu.Portal>
@@ -295,7 +311,7 @@ export const SortableProject = (props: {
         </div>
 
         <Collapsible.Content>
-          <div class="flex flex-col mt-0.5">
+          <div class="flex flex-col mt-0.5 gap-0.5">
             <Show when={loading()}>
               <div class="px-3 py-2 text-14-regular text-text-weaker">Loading...</div>
             </Show>
@@ -322,6 +338,7 @@ export const SortableProject = (props: {
                 onClick={() => loadMore()}
               >
                 <span class="font-medium text-13-regular">{language.t("common.loadMore")}</span>
+                <Icon name="chevron-down" size="small" class="text-text-weaker group-hover:text-text-base transition-colors" />
               </button>
             </Show>
           </div>

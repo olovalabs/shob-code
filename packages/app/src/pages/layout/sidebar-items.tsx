@@ -180,6 +180,7 @@ export const SessionItem = (props: SessionItemProps): JSX.Element => {
     if (!props.showChild) return
     return childSessionOnPath(sessionStore.session, props.session.id, params.id)
   })
+  const active = createMemo(() => params.id === props.session.id && params.dir === props.slug)
 
   const warm = (span: number, priority: "high" | "low") => {
     const nav = props.navList?.()
@@ -223,7 +224,11 @@ export const SessionItem = (props: SessionItemProps): JSX.Element => {
     <>
       <div
         data-session-id={props.session.id}
-        class="group/session relative flex items-center justify-between mx-2 pl-[38px] pr-3 py-1.5 rounded-lg cursor-pointer text-text-base hover:bg-surface-raised-base-hover hover:text-text-strong transition-colors"
+        class="group/session relative flex items-center justify-between mx-2 pl-[38px] pr-3 py-1.5 rounded-lg cursor-pointer transition-[background-color,color] duration-150"
+        classList={{
+          "text-text-base hover:bg-surface-raised-base-hover hover:text-text-strong": !active(),
+          "bg-surface-raised-base text-text-strong": active(),
+        }}
       >
         <div class="min-w-0 flex-1">
           <Show

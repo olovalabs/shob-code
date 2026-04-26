@@ -1306,7 +1306,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 8px 0;
+  padding: 8px 0 8px 10px;
 
   [data-slot="question-answer-item"] {
     display: flex;
