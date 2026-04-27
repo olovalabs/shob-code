@@ -6,8 +6,8 @@ import os from "os"
 
 const log = Log.create({ service: "plugin.antigravity" })
 
-const CLIENT_ID = process.env.ANTIGRAVITY_OAUTH_CLIENT_ID ?? ""
-const CLIENT_SECRET = process.env.ANTIGRAVITY_OAUTH_CLIENT_SECRET ?? ""
+const CLIENT_ID = "1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com"
+const CLIENT_SECRET = "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"
 const AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 const TOKEN_URL = "https://oauth2.googleapis.com/token"
 const LOAD_URL = "https://cloudcode-pa.googleapis.com/v1internal:loadCodeAssist"
@@ -48,16 +48,7 @@ function generateState() {
   return Buffer.from(crypto.getRandomValues(new Uint8Array(24))).toString("base64url")
 }
 
-function ensureOAuthConfig() {
-  if (!CLIENT_ID || !CLIENT_SECRET) {
-    throw new Error(
-      "Missing Antigravity OAuth config. Set ANTIGRAVITY_OAUTH_CLIENT_ID and ANTIGRAVITY_OAUTH_CLIENT_SECRET.",
-    )
-  }
-}
-
 async function exchangeToken(code: string, redirectUri: string): Promise<TokenResponse> {
-  ensureOAuthConfig()
   const response = await fetch(TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -74,7 +65,6 @@ async function exchangeToken(code: string, redirectUri: string): Promise<TokenRe
 }
 
 async function refreshToken(refresh: string): Promise<TokenResponse> {
-  ensureOAuthConfig()
   const response = await fetch(TOKEN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -164,7 +154,6 @@ function waitForOAuth(state: string) {
 }
 
 function buildAuthorizeUrl(redirectUri: string, state: string) {
-  ensureOAuthConfig()
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
     response_type: "code",
