@@ -20,8 +20,9 @@ const PROVIDER_PRIORITY: Record<string, number> = {
   "opencode-go": 1,
   openai: 2,
   "github-copilot": 3,
-  anthropic: 4,
-  google: 5,
+  antigravity: 4,
+  anthropic: 5,
+  google: 6,
 }
 
 export function createDialogProviderOptions() {
@@ -45,6 +46,7 @@ export function createDialogProviderOptions() {
             opencode: "(Recommended)",
             anthropic: "(API key)",
             openai: "(ChatGPT Plus/Pro or API key)",
+            antigravity: "(Google OAuth)",
             "opencode-go": "Low cost subscription for everyone",
           }[provider.id],
           footer: consoleManaged ? sync.data.console_state.activeOrgName : undefined,
